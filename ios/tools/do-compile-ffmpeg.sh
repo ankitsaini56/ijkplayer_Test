@@ -188,6 +188,8 @@ FF_XCRUN_CC="xcrun -sdk $FF_XCRUN_SDK clang"
 
 FFMPEG_CFG_FLAGS="$FFMPEG_CFG_FLAGS $FFMPEG_CFG_CPU"
 
+FFMPEG_EXTRA_CFLAGS="$FFMPEG_EXTRA_CFLAGS -I $FF_BUILD_ROOT/iotc/Include"
+
 FFMPEG_CFLAGS=
 FFMPEG_CFLAGS="$FFMPEG_CFLAGS -arch $FF_ARCH"
 FFMPEG_CFLAGS="$FFMPEG_CFLAGS $FF_XCRUN_OSVERSION"
@@ -200,8 +202,8 @@ FFMPEG_DEP_LIBS=
 echo "\n--------------------"
 echo "[*] check OpenSSL"
 echo "----------------------"
-FFMPEG_DEP_OPENSSL_INC=$FF_BUILD_ROOT/build/$FF_BUILD_NAME_OPENSSL/output/include
-FFMPEG_DEP_OPENSSL_LIB=$FF_BUILD_ROOT/build/$FF_BUILD_NAME_OPENSSL/output/lib
+FFMPEG_DEP_OPENSSL_INC=$FF_BUILD_ROOT/openssl/include
+FFMPEG_DEP_OPENSSL_LIB=$FF_BUILD_ROOT/openssl/lib
 #--------------------
 # with openssl
 if [ -f "${FFMPEG_DEP_OPENSSL_LIB}/libssl.a" ]; then

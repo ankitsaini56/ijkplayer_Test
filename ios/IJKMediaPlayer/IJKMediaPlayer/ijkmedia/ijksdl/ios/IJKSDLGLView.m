@@ -334,29 +334,31 @@ typedef NS_ENUM(NSInteger, IJKSDLGLViewApplicationState) {
 
 - (void)display: (SDL_VoutOverlay *) overlay
 {
-    if (_didSetupGL == NO)
-        return;
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (_didSetupGL == NO)
+            return;
 
-    if ([self isApplicationActive] == NO)
-        return;
+        if ([self isApplicationActive] == NO)
+            return;
 
-    if (![self tryLockGLActive]) {
-        if (0 == (_tryLockErrorCount % 100)) {
-            NSLog(@"IJKSDLGLView:display: unable to tryLock GL active: %d\n", _tryLockErrorCount);
+        if (![self tryLockGLActive]) {
+            if (0 == (_tryLockErrorCount % 100)) {
+                NSLog(@"IJKSDLGLView:display: unable to tryLock GL active: %d\n", _tryLockErrorCount);
+            }
+            _tryLockErrorCount++;
+            return;
         }
-        _tryLockErrorCount++;
-        return;
-    }
 
-    _tryLockErrorCount = 0;
-    if (_context && !_didStopGL) {
-        EAGLContext *prevContext = [EAGLContext currentContext];
-        [EAGLContext setCurrentContext:_context];
-        [self displayInternal:overlay];
-        [EAGLContext setCurrentContext:prevContext];
-    }
+        _tryLockErrorCount = 0;
+        if (_context && !_didStopGL) {
+            EAGLContext *prevContext = [EAGLContext currentContext];
+            [EAGLContext setCurrentContext:_context];
+            [self displayInternal:overlay];
+            [EAGLContext setCurrentContext:prevContext];
+        }
 
-    [self unlockGLActive];
+        [self unlockGLActive];
+    });
 }
 
 // NOTE: overlay could be NULl

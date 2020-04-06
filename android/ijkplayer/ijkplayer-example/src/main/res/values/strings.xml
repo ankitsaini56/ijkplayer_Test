@@ -8,7 +8,8 @@
     <string name="exit">Exit</string>
     <string name="sample">Sample</string>
     <string name="recent">Recent</string>
-    <string name="settings">Settings</string>
+    <string name="settings">Input URL</string>
+    <string name="play">Play</string>
     <string name="tracks">Tracks</string>
     <string name="toggle_player">Player</string>
     <string name="toggle_render">Render</string>

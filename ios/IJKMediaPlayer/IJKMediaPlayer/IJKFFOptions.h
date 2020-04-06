@@ -55,6 +55,9 @@ struct IjkMediaPlayer;
                 forKey:(NSString *)key
             ofCategory:(IJKFFOptionCategory)category;
 
+- (int64_t)getOptionIntValue:(NSString *)key
+                  ofCategory:(IJKFFOptionCategory)category;
+
 - (void)setOptionIntValue:(int64_t)value
                    forKey:(NSString *)key
                ofCategory:(IJKFFOptionCategory)category;

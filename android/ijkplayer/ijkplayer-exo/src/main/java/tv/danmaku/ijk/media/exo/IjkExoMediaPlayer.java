@@ -200,6 +200,11 @@ public class IjkExoMediaPlayer extends AbstractMediaPlayer {
     }
 
     @Override
+    public long getRealTime() {
+        return 0;
+    }
+
+    @Override
     public long getDuration() {
         if (mInternalPlayer == null)
             return 0;

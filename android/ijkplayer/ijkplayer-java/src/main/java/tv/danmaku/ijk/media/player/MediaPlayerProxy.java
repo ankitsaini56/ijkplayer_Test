@@ -138,6 +138,11 @@ public class MediaPlayerProxy implements IMediaPlayer {
     }
 
     @Override
+    public long getRealTime() {
+        return mBackEndMediaPlayer.getRealTime();
+    }
+
+    @Override
     public long getDuration() {
         return mBackEndMediaPlayer.getDuration();
     }

@@ -57,6 +57,7 @@ import tv.danmaku.ijk.media.player.annotations.CalledByNative;
 import tv.danmaku.ijk.media.player.misc.IAndroidIO;
 import tv.danmaku.ijk.media.player.misc.IMediaDataSource;
 import tv.danmaku.ijk.media.player.misc.ITrackInfo;
+import tv.danmaku.ijk.media.player.misc.IjkFrame;
 import tv.danmaku.ijk.media.player.misc.IjkTrackInfo;
 import tv.danmaku.ijk.media.player.pragma.DebugLog;
 
@@ -678,6 +679,9 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
     public native long getCurrentPosition();
 
     @Override
+    public native long getRealTime();
+
+    @Override
     public native long getDuration();
 
     /**
@@ -1284,4 +1288,25 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
     public static native void native_profileBegin(String libName);
     public static native void native_profileEnd();
     public static native void native_setLogLevel(int level);
+
+    public native byte [] getRGBAFrame(int [] w, int [] h);
+
+    public IjkFrame getFrame() {
+        byte[] pixels;
+        int [] w = new int[1];
+        int [] h = new int[1];
+        pixels = getRGBAFrame(w, h);
+
+        if (pixels == null) {
+            return null;
+        }
+
+        IjkFrame frame = new IjkFrame();
+        frame.pixels = pixels;
+        frame.width = w[0];
+        frame.height = h[0];
+        frame.pixelFormat = IjkFrame.PixelFormat.RGBA;
+        return frame;
+    }
+
 }

@@ -188,6 +188,7 @@ IjkMediaMeta   *ijkmp_get_meta_l(IjkMediaPlayer *mp);
 // preferred to be called explicity, can be called multiple times
 // NOTE: ijkmp_shutdown may block thread
 void            ijkmp_shutdown(IjkMediaPlayer *mp);
+void            ijkmp_safe_shutdown(IjkMediaPlayer *mp);
 
 void            ijkmp_inc_ref(IjkMediaPlayer *mp);
 
@@ -201,10 +202,11 @@ int             ijkmp_prepare_async(IjkMediaPlayer *mp);
 int             ijkmp_start(IjkMediaPlayer *mp);
 int             ijkmp_pause(IjkMediaPlayer *mp);
 int             ijkmp_stop(IjkMediaPlayer *mp);
-int             ijkmp_seek_to(IjkMediaPlayer *mp, long msec);
+int             ijkmp_seek_to(IjkMediaPlayer *mp, uint64_t msec);
 int             ijkmp_get_state(IjkMediaPlayer *mp);
 bool            ijkmp_is_playing(IjkMediaPlayer *mp);
 long            ijkmp_get_current_position(IjkMediaPlayer *mp);
+uint32_t        ijkmp_get_real_time(IjkMediaPlayer *mp);
 long            ijkmp_get_duration(IjkMediaPlayer *mp);
 long            ijkmp_get_playable_duration(IjkMediaPlayer *mp);
 void            ijkmp_set_loop(IjkMediaPlayer *mp, int loop);
@@ -217,5 +219,6 @@ void           *ijkmp_set_weak_thiz(IjkMediaPlayer *mp, void *weak_thiz);
 /* need to call msg_free_res for freeing the resouce obtained in msg */
 int             ijkmp_get_msg(IjkMediaPlayer *mp, AVMessage *msg, int block);
 void            ijkmp_set_frame_at_time(IjkMediaPlayer *mp, const char *path, int64_t start_time, int64_t end_time, int num, int definition);
+long            ijkmp_get_frame(IjkMediaPlayer *mp, uint8_t **data, int *w, int *h);
 
 #endif

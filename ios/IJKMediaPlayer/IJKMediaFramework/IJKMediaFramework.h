@@ -30,6 +30,8 @@ FOUNDATION_EXPORT double IJKMediaFrameworkVersionNumber;
 FOUNDATION_EXPORT const unsigned char IJKMediaFrameworkVersionString[];
 
 // In this header, you should import all the public headers of your framework using statements like #import <IJKMediaFrameworkWithSSL/PublicHeader.h>
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Weverything"
 #import <IJKMediaFramework/IJKMediaPlayback.h>
 #import <IJKMediaFramework/IJKMPMoviePlayerController.h>
 #import <IJKMediaFramework/IJKFFOptions.h>
@@ -40,6 +42,7 @@ FOUNDATION_EXPORT const unsigned char IJKMediaFrameworkVersionString[];
 #import <IJKMediaFramework/IJKNotificationManager.h>
 #import <IJKMediaFramework/IJKKVOController.h>
 #import <IJKMediaFramework/IJKSDLGLViewProtocol.h>
+#pragma clang diagnostic pop
 
 // backward compatible for old names
 #define IJKMediaPlaybackIsPreparedToPlayDidChangeNotification IJKMPMediaPlaybackIsPreparedToPlayDidChangeNotification

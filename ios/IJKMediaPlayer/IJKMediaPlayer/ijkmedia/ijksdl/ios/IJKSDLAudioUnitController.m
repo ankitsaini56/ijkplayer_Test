@@ -210,6 +210,19 @@
     _auUnit = NULL;
 }
 
+- (void)setPlaybackRate:(float)playbackRate
+{
+}
+
+- (void)setPlaybackVolume:(float)playbackVolume
+{
+}
+
+- (double)get_latency_seconds
+{
+    return 0.0;
+}
+
 static OSStatus RenderCallback(void                        *inRefCon,
                                AudioUnitRenderActionFlags  *ioActionFlags,
                                const AudioTimeStamp        *inTimeStamp,

@@ -252,6 +252,10 @@ SDL_Android_AudioTrack *SDL_Android_AudioTrack_new_from_sdl_spec(JNIEnv *env, co
     atrack_spec.audio_format = find_android_format(sdl_spec->format);
     atrack_spec.buffer_size_in_bytes = sdl_spec->size;
 
+    if (sdl_spec->enable_aec) {
+        atrack_spec.stream_type = STREAM_VOICE_CALL;
+    }
+
     return SDL_Android_AudioTrack_new_from_spec(env, &atrack_spec);
 }
 

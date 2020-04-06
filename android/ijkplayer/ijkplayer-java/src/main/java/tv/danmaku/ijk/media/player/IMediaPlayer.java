@@ -60,6 +60,10 @@ public interface IMediaPlayer {
     int MEDIA_INFO_AUDIO_SEEK_RENDERING_START = 10009;
     int MEDIA_INFO_MEDIA_ACCURATE_SEEK_COMPLETE = 10100;
 
+    int MEDIA_INFO_FRAME_DROPPED = 10200;
+    int MEDIA_INFO_FRAME_NOT_DROPPED = 10300;
+    int MEDIA_INFO_VIDEO_RECORD_COMPLETE = 10400;
+
     int MEDIA_ERROR_UNKNOWN = 1;
     int MEDIA_ERROR_SERVER_DIED = 100;
     int MEDIA_ERROR_NOT_VALID_FOR_PROGRESSIVE_PLAYBACK = 200;
@@ -104,6 +108,8 @@ public interface IMediaPlayer {
     void seekTo(long msec) throws IllegalStateException;
 
     long getCurrentPosition();
+
+    long getRealTime();
 
     long getDuration();
 

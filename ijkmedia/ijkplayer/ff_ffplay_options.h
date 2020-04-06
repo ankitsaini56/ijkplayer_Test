@@ -164,6 +164,18 @@ static const AVOption ffp_context_options[] = {
         OPTION_OFFSET(async_init_decoder),   OPTION_INT(0, 0, 1) },
     { "video-mime-type",                    "default video mime type",
         OPTION_OFFSET(video_mime_type),     OPTION_STR(NULL) },
+    { "enable-get-frame",                    "enable get frame",
+        OPTION_OFFSET(enable_get_frame),     OPTION_INT(0, 0, 1) },
+    { "enable-aec",                          "enable acoustic echo cancelling",
+        OPTION_OFFSET(enable_aec),           OPTION_INT(0, 0, 1) },
+    { "disable-multithread-delaying",                          "disable video decoder multithread delaying",
+        OPTION_OFFSET(disable_multithread_delaying),           OPTION_INT(0, 0, 1) },
+
+    // set on runtime options
+    { "video-record-path",                   "video record path",
+        OPTION_OFFSET(video_record_path),    OPTION_STR(NULL) },
+    { "video-record-duration",                      "video record duration",
+        OPTION_OFFSET(video_record_duration),       OPTION_INT(0, 0, INT_MAX) },
 
         // iOS only options
     { "videotoolbox",                       "VideoToolbox: enable",

@@ -26,7 +26,7 @@
 
 @implementation IJKFFOptions {
     NSMutableDictionary *_optionCategories;
-
+    
     NSMutableDictionary *_playerOptions;
     NSMutableDictionary *_formatOptions;
     NSMutableDictionary *_codecOptions;
@@ -37,20 +37,21 @@
 + (IJKFFOptions *)optionsByDefault
 {
     IJKFFOptions *options = [[IJKFFOptions alloc] init];
-
+    
     [options setPlayerOptionIntValue:30     forKey:@"max-fps"];
     [options setPlayerOptionIntValue:0      forKey:@"framedrop"];
     [options setPlayerOptionIntValue:3      forKey:@"video-pictq-size"];
     [options setPlayerOptionIntValue:0      forKey:@"videotoolbox"];
     [options setPlayerOptionIntValue:960    forKey:@"videotoolbox-max-frame-width"];
-
+    [options setPlayerOptionIntValue:1                  forKey:@"enable-accurate-seek"];
+    
     [options setFormatOptionIntValue:0                  forKey:@"auto_convert"];
     [options setFormatOptionIntValue:1                  forKey:@"reconnect"];
     [options setFormatOptionIntValue:30 * 1000 * 1000   forKey:@"timeout"];
     [options setFormatOptionValue:@"ijkplayer"          forKey:@"user-agent"];
-
+    
     options.showHudView   = NO;
-
+    
     return options;
 }
 
@@ -63,7 +64,7 @@
         _codecOptions       = [[NSMutableDictionary alloc] init];
         _swsOptions         = [[NSMutableDictionary alloc] init];
         _swrOptions         = [[NSMutableDictionary alloc] init];
-
+        
         _optionCategories   = [[NSMutableDictionary alloc] init];
         _optionCategories[@(IJKMP_OPT_CATEGORY_PLAYER)] = _playerOptions;
         _optionCategories[@(IJKMP_OPT_CATEGORY_FORMAT)] = _formatOptions;
@@ -99,7 +100,7 @@
 {
     if (!key)
         return;
-
+    
     NSMutableDictionary *options = [_optionCategories objectForKey:@(category)];
     if (options) {
         if (value) {
@@ -110,13 +111,31 @@
     }
 }
 
+- (int64_t)getOptionIntValue:(NSString *)key
+               ofCategory:(IJKFFOptionCategory)category
+{
+    int64_t ret = -1;
+    if (!key)
+        return ret;
+    
+    NSMutableDictionary *options = [_optionCategories objectForKey:@(category)];
+    if (options) {
+        id value = [options objectForKey:key];
+        if (value) {
+            ret = [value longLongValue];
+        }
+    }
+    
+    return ret;
+}
+
 - (void)setOptionIntValue:(int64_t)value
                    forKey:(NSString *)key
                ofCategory:(IJKFFOptionCategory)category
 {
     if (!key)
         return;
-
+    
     NSMutableDictionary *options = [_optionCategories objectForKey:@(category)];
     if (options) {
         [options setObject:@(value) forKey:key];

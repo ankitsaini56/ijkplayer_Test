@@ -61,6 +61,18 @@ typedef NS_ENUM(NSInteger, IJKMPMovieTimeOption) {
     IJKMPMovieTimeOptionExact
 };
 
+@interface Frame : NSObject
+
+@property(nonatomic, readonly) NSData *pixels;
+@property(nonatomic, readonly) int width;
+@property(nonatomic, readonly) int height;
+
+- (instancetype)initFrame:(NSData *)pixels
+                withWidth:(int)w
+                andHeight:(int)h;
+
+@end
+
 @protocol IJKMediaPlayback;
 
 #pragma mark IJKMediaPlayback
@@ -74,9 +86,14 @@ typedef NS_ENUM(NSInteger, IJKMPMovieTimeOption) {
 - (BOOL)isPlaying;
 - (void)shutdown;
 - (void)setPauseInBackground:(BOOL)pause;
+- (int) startVideoRecord:(NSString *)path;
+- (int) startVideoRecord:(NSString *)path
+            withDuration:(int)durationInSeconds;
+- (int) stopVideoRecord;
 
 @property(nonatomic, readonly)  UIView *view;
 @property(nonatomic)            NSTimeInterval currentPlaybackTime;
+@property(nonatomic, readonly)  NSTimeInterval realTime;
 @property(nonatomic, readonly)  NSTimeInterval duration;
 @property(nonatomic, readonly)  NSTimeInterval playableDuration;
 @property(nonatomic, readonly)  NSInteger bufferingProgress;
@@ -100,6 +117,8 @@ typedef NS_ENUM(NSInteger, IJKMPMovieTimeOption) {
 
 @property (nonatomic) float playbackRate;
 @property (nonatomic) float playbackVolume;
+
+@property (nonatomic, readonly) Frame *RGBAFrame;
 
 - (UIImage *)thumbnailImageAtCurrentTime;
 
@@ -165,13 +184,17 @@ IJK_EXTERN NSString *const IJKMPMoviePlayerAccurateSeekCompleteNotification;
 IJK_EXTERN NSString *const IJKMPMoviePlayerSeekAudioStartNotification;
 IJK_EXTERN NSString *const IJKMPMoviePlayerSeekVideoStartNotification;
 
+IJK_EXTERN NSString *const IJKMPMoviePlayerPlayFrameDroppedNotification;
+IJK_EXTERN NSString *const IJKMPMoviePlayerPlayFrameNotDroppedNotification;
+IJK_EXTERN NSString *const IJKMPMoviePlayerVideoRecordCompleteNotification;
+
 @end
 
 #pragma mark IJKMediaUrlOpenDelegate
 
 // Must equal to the defination in ijkavformat/ijkavformat.h
 typedef NS_ENUM(NSInteger, IJKMediaEvent) {
-
+    
     // Notify Events
     IJKMediaEvent_WillHttpOpen         = 1,       // attr: url
     IJKMediaEvent_DidHttpOpen          = 2,       // attr: url, error, http_code

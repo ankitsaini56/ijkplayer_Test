@@ -52,6 +52,9 @@
 #define FFP_MSG_TIMED_TEXT                  800
 #define FFP_MSG_ACCURATE_SEEK_COMPLETE      900     /* arg1 = current position*/
 #define FFP_MSG_GET_IMG_STATE               1000    /* arg1 = timestamp, arg2 = result code, obj = file name*/
+#define FFP_MSG_FRAME_DROPPED               1100
+#define FFP_MSG_FRAME_NOT_DROPPED           1200
+#define FFP_MSG_VIDEO_RECORD_COMPLETE       1300
 
 #define FFP_MSG_VIDEO_DECODER_OPEN          10001
 

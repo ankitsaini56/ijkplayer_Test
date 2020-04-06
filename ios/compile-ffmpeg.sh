@@ -21,7 +21,7 @@
 
 FF_ALL_ARCHS_IOS6_SDK="armv7 armv7s i386"
 FF_ALL_ARCHS_IOS7_SDK="armv7 armv7s arm64 i386 x86_64"
-FF_ALL_ARCHS_IOS8_SDK="armv7 arm64 i386 x86_64"
+FF_ALL_ARCHS_IOS8_SDK="arm64"
 
 FF_ALL_ARCHS=$FF_ALL_ARCHS_IOS8_SDK
 
@@ -62,21 +62,7 @@ do_lipo_ffmpeg () {
 SSL_LIBS="libcrypto libssl"
 do_lipo_ssl () {
     LIB_FILE=$1
-    LIPO_FLAGS=
-    for ARCH in $FF_ALL_ARCHS
-    do
-        ARCH_LIB_FILE="$UNI_BUILD_ROOT/build/openssl-$ARCH/output/lib/$LIB_FILE"
-        if [ -f "$ARCH_LIB_FILE" ]; then
-            LIPO_FLAGS="$LIPO_FLAGS $ARCH_LIB_FILE"
-        else
-            echo "skip $LIB_FILE of $ARCH";
-        fi
-    done
-
-    if [ "$LIPO_FLAGS" != "" ]; then
-        xcrun lipo -create $LIPO_FLAGS -output $UNI_BUILD_ROOT/build/universal/lib/$LIB_FILE
-        xcrun lipo -info $UNI_BUILD_ROOT/build/universal/lib/$LIB_FILE
-    fi
+    cp openssl/lib/$LIB_FILE $UNI_BUILD_ROOT/build/universal/lib/$LIB_FILE
 }
 
 do_lipo_all () {

@@ -43,7 +43,12 @@ static int aout_open_audio(SDL_Aout *aout, const SDL_AudioSpec *desired, SDL_Aud
     SDLTRACE("aout_open_audio()\n");
     SDL_Aout_Opaque *opaque = aout->opaque;
 
-    opaque->aoutController = [[IJKSDLAudioQueueController alloc] initWithAudioSpec:desired];
+    if (desired->enable_aec) {
+        opaque->aoutController = [[IJKSDLAudioUnitController alloc] initWithAudioSpec:desired];
+    } else {
+        opaque->aoutController = [[IJKSDLAudioQueueController alloc] initWithAudioSpec:desired];
+    }
+    
     if (!opaque->aoutController) {
         ALOGE("aout_open_audio_n: failed to new AudioTrcak()\n");
         return -1;

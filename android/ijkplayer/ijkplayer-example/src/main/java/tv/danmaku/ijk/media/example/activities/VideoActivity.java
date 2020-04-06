@@ -17,52 +17,42 @@
 
 package tv.danmaku.ijk.media.example.activities;
 
-import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Color;
-import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
-import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentTransaction;
-import android.support.v4.widget.DrawerLayout;
+import android.os.Handler;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.text.TextUtils;
 import android.util.Log;
-import android.view.Menu;
-import android.view.MenuItem;
-import android.view.ViewGroup;
-import android.widget.TableLayout;
-import android.widget.TextView;
 
-import tv.danmaku.ijk.media.player.IjkMediaPlayer;
-import tv.danmaku.ijk.media.player.misc.ITrackInfo;
+import com.tutk.IOTC.AVAPIs;
+import com.tutk.IOTC.IOTCAPIs;
+import com.tutk.IOTC.St_AVClientStartInConfig;
+import com.tutk.IOTC.St_AVClientStartOutConfig;
+
 import tv.danmaku.ijk.media.example.R;
-import tv.danmaku.ijk.media.example.application.Settings;
-import tv.danmaku.ijk.media.example.content.RecentMediaStorage;
-import tv.danmaku.ijk.media.example.fragments.TracksFragment;
-import tv.danmaku.ijk.media.example.widget.media.AndroidMediaController;
-import tv.danmaku.ijk.media.example.widget.media.IjkVideoView;
-import tv.danmaku.ijk.media.example.widget.media.MeasureHelper;
+import tv.danmaku.ijk.media.player.IMediaPlayer;
+import tv.danmaku.ijk.media.player.widget.media.AndroidMediaController;
+import tv.danmaku.ijk.media.player.widget.media.IjkVideoView;
 
-public class VideoActivity extends AppCompatActivity implements TracksFragment.ITrackHolder {
+public class VideoActivity extends AppCompatActivity {
     private static final String TAG = "VideoActivity";
+    private static final String VIDEO_RECORD_PATH = "/sdcard/record.mp4";
+    private static final String AVTECH_RTSP_URL = "YOUR_RTSP_URL";
+    private static final String AVAPI_UID = "YOUR_UID";
+    private static final String AVAPI_ACCOUNT = "YOUR_ACCOUNT";
+    private static final String AVAPI_PASSWORD = "YOUR_PASSWORD";
+    private static final int AVAPI_CHANNEL = 0;
 
     private String mVideoPath;
-    private Uri    mVideoUri;
-
     private AndroidMediaController mMediaController;
     private IjkVideoView mVideoView;
-    private TextView mToastTextView;
-    private TableLayout mHudView;
-    private DrawerLayout mDrawerLayout;
-    private ViewGroup mRightDrawer;
-
-    private Settings mSettings;
-    private boolean mBackPressed;
+    private boolean mDemoVideoRecord = false;
+    private boolean mDemoAvtechSeek = false;
+    private boolean mDemoAVAPI = false;
+    private int mSeesionId;
+    private int mAvIndex;
 
     public static Intent newIntent(Context context, String videoPath, String videoTitle) {
         Intent intent = new Intent(context, VideoActivity.class);
@@ -80,173 +70,120 @@ public class VideoActivity extends AppCompatActivity implements TracksFragment.I
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_player);
 
-        mSettings = new Settings(this);
-
-        // handle arguments
-        mVideoPath = getIntent().getStringExtra("videoPath");
-
-        Intent intent = getIntent();
-        String intentAction = intent.getAction();
-        if (!TextUtils.isEmpty(intentAction)) {
-            if (intentAction.equals(Intent.ACTION_VIEW)) {
-                mVideoPath = intent.getDataString();
-            } else if (intentAction.equals(Intent.ACTION_SEND)) {
-                mVideoUri = intent.getParcelableExtra(Intent.EXTRA_STREAM);
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
-                    String scheme = mVideoUri.getScheme();
-                    if (TextUtils.isEmpty(scheme)) {
-                        Log.e(TAG, "Null unknown scheme\n");
-                        finish();
-                        return;
-                    }
-                    if (scheme.equals(ContentResolver.SCHEME_ANDROID_RESOURCE)) {
-                        mVideoPath = mVideoUri.getPath();
-                    } else if (scheme.equals(ContentResolver.SCHEME_CONTENT)) {
-                        Log.e(TAG, "Can not resolve content below Android-ICS\n");
-                        finish();
-                        return;
-                    } else {
-                        Log.e(TAG, "Unknown scheme " + scheme + "\n");
-                        finish();
-                        return;
-                    }
-                }
-            }
-        }
-
-        if (!TextUtils.isEmpty(mVideoPath)) {
-            new RecentMediaStorage(this).saveUrlAsync(mVideoPath);
-        }
-
-        // init UI
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+
+        mVideoPath = getIntent().getStringExtra("videoPath");
 
         ActionBar actionBar = getSupportActionBar();
         mMediaController = new AndroidMediaController(this, false);
         mMediaController.setSupportActionBar(actionBar);
 
-        mToastTextView = (TextView) findViewById(R.id.toast_text_view);
-        mHudView = (TableLayout) findViewById(R.id.hud_view);
-        mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
-        mRightDrawer = (ViewGroup) findViewById(R.id.right_drawer);
-
-        mDrawerLayout.setScrimColor(Color.TRANSPARENT);
-
-        // init player
-        IjkMediaPlayer.loadLibrariesOnce(null);
-        IjkMediaPlayer.native_profileBegin("libijkplayer.so");
-
         mVideoView = (IjkVideoView) findViewById(R.id.video_view);
         mVideoView.setMediaController(mMediaController);
-        mVideoView.setHudView(mHudView);
-        // prefer mVideoPath
-        if (mVideoPath != null)
-            mVideoView.setVideoPath(mVideoPath);
-        else if (mVideoUri != null)
-            mVideoView.setVideoURI(mVideoUri);
-        else {
-            Log.e(TAG, "Null Data Source\n");
-            finish();
-            return;
+
+        mVideoView.enableAEC();
+        mVideoView.disableMultithreadDelaying();
+        if (mDemoAvtechSeek) {
+            mVideoView.enableAvtechSeek();
+            mVideoPath = AVTECH_RTSP_URL;
         }
+        if (mDemoAVAPI) {
+            IOTCAPIs.IOTC_Initialize2(0);
+            AVAPIs.avInitialize(3);
+
+            long [] avAPIs = new long[1];
+            AVAPIs.avGetAPIs(avAPIs);
+            mVideoView.setAVAPI(avAPIs[0]);
+
+            mSeesionId = IOTCAPIs.IOTC_Get_SessionID();
+            IOTCAPIs.IOTC_Connect_ByUID_Parallel(AVAPI_UID, mSeesionId);
+
+            St_AVClientStartInConfig avConfig = new St_AVClientStartInConfig();
+            St_AVClientStartOutConfig avOutConfig = new St_AVClientStartOutConfig();
+            avConfig.iotc_channel_id = AVAPI_CHANNEL;
+            avConfig.resend = 1;
+            avConfig.auth_type = 0;
+            avConfig.security_mode = 0;
+            avConfig.timeout_sec = 20;
+            avConfig.iotc_session_id = mSeesionId;
+            avConfig.account_or_identity = AVAPI_ACCOUNT;
+            avConfig.password_or_token = AVAPI_PASSWORD;
+            mAvIndex = AVAPIs.avClientStartEx(avConfig, avOutConfig);
+
+            //
+            // <INFO>: If live url channel is not 0, need to add account, password, and session-id parameters to url.
+            //
+            final String AVAPI_LIVE_URL = "avapi://tutk.com/live?channel=" + AVAPI_CHANNEL + "&av-index=" + mAvIndex;
+
+            final String AVAPI_PLAYBACK_URL = "avapi://tutk.com/playback?session-id=" + mSeesionId + "&channel=" + AVAPI_CHANNEL +
+                    "&account=" + AVAPI_ACCOUNT + "&password=" + AVAPI_PASSWORD + "&start-time=1580882907&av-index=" + mAvIndex;
+            mVideoPath = AVAPI_PLAYBACK_URL;
+        }
+
+        mVideoView.enableMediaCodec();
+        mVideoView.setVideoPath(mVideoPath);
         mVideoView.start();
-    }
+        mVideoView.setSpeed(1.0f);
 
-    @Override
-    public void onBackPressed() {
-        mBackPressed = true;
-
-        super.onBackPressed();
-    }
-
-    @Override
-    protected void onStop() {
-        super.onStop();
-
-        if (mBackPressed || !mVideoView.isBackgroundPlayEnabled()) {
-            mVideoView.stopPlayback();
-            mVideoView.release(true);
-            mVideoView.stopBackgroundPlay();
-        } else {
-            mVideoView.enterBackground();
-        }
-        IjkMediaPlayer.native_profileEnd();
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.menu_player, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        int id = item.getItemId();
-        if (id == R.id.action_toggle_ratio) {
-            int aspectRatio = mVideoView.toggleAspectRatio();
-            String aspectRatioText = MeasureHelper.getAspectRatioText(this, aspectRatio);
-            mToastTextView.setText(aspectRatioText);
-            mMediaController.showOnce(mToastTextView);
-            return true;
-        } else if (id == R.id.action_toggle_player) {
-            int player = mVideoView.togglePlayer();
-            String playerText = IjkVideoView.getPlayerText(this, player);
-            mToastTextView.setText(playerText);
-            mMediaController.showOnce(mToastTextView);
-            return true;
-        } else if (id == R.id.action_toggle_render) {
-            int render = mVideoView.toggleRender();
-            String renderText = IjkVideoView.getRenderText(this, render);
-            mToastTextView.setText(renderText);
-            mMediaController.showOnce(mToastTextView);
-            return true;
-        } else if (id == R.id.action_show_info) {
-            mVideoView.showMediaInfo();
-        } else if (id == R.id.action_show_tracks) {
-            if (mDrawerLayout.isDrawerOpen(mRightDrawer)) {
-                Fragment f = getSupportFragmentManager().findFragmentById(R.id.right_drawer);
-                if (f != null) {
-                    FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
-                    transaction.remove(f);
-                    transaction.commit();
+        mVideoView.setOnPreparedListener(new IMediaPlayer.OnPreparedListener() {
+            @Override
+            public void onPrepared(IMediaPlayer mp) {
+                //
+                // <INFO>: video record only works well for rtsp source
+                //
+                if (mDemoVideoRecord) {
+                    mVideoView.startVideoRecord(VIDEO_RECORD_PATH);
+                    new Handler().postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            mVideoView.stopVideoRecord();
+                        }
+                    }, 10000);
                 }
-                mDrawerLayout.closeDrawer(mRightDrawer);
-            } else {
-                Fragment f = TracksFragment.newInstance();
-                FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
-                transaction.replace(R.id.right_drawer, f);
-                transaction.commit();
-                mDrawerLayout.openDrawer(mRightDrawer);
+
+                if (mDemoAvtechSeek) {
+                    mVideoView.seekTo(System.currentTimeMillis() - 60 * 60 * 1000);
+                }
             }
+        });
+
+        mVideoView.setOnInfoListener(new IMediaPlayer.OnInfoListener() {
+            @Override
+            public boolean onInfo(IMediaPlayer mp, int what, int extra) {
+                switch (what) {
+                    case IMediaPlayer.MEDIA_INFO_FRAME_DROPPED:
+                        Log.i(TAG, "frame dropped");
+                        break;
+                    case IMediaPlayer.MEDIA_INFO_FRAME_NOT_DROPPED:
+                        Log.i(TAG, "resume from frame dropped");
+                        break;
+                    case IMediaPlayer.MEDIA_INFO_VIDEO_RECORD_COMPLETE:
+                        Log.i(TAG, "video record complete");
+                        break;
+                }
+                return false;
+            }
+        });
+
+        mVideoView.setOnSeekCompleteListener(new IMediaPlayer.OnSeekCompleteListener() {
+            @Override
+            public void onSeekComplete(IMediaPlayer mp) {
+                Log.i(TAG, "seek complete");
+            }
+        });
+    }
+
+    @Override
+    protected void onDestroy() {
+        mVideoView.stopPlayback();
+        mVideoView.release(true);
+        if (mDemoAVAPI) {
+            AVAPIs.avClientStop(mAvIndex);
+            IOTCAPIs.IOTC_Session_Close(mSeesionId);
+            AVAPIs.avDeInitialize();
+            IOTCAPIs.IOTC_DeInitialize();
         }
-
-        return super.onOptionsItemSelected(item);
-    }
-
-    @Override
-    public ITrackInfo[] getTrackInfo() {
-        if (mVideoView == null)
-            return null;
-
-        return mVideoView.getTrackInfo();
-    }
-
-    @Override
-    public void selectTrack(int stream) {
-        mVideoView.selectTrack(stream);
-    }
-
-    @Override
-    public void deselectTrack(int stream) {
-        mVideoView.deselectTrack(stream);
-    }
-
-    @Override
-    public int getSelectedTrack(int trackType) {
-        if (mVideoView == null)
-            return -1;
-
-        return mVideoView.getSelectedTrack(trackType);
+        super.onDestroy();
     }
 }

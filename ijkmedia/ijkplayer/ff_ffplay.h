@@ -57,7 +57,7 @@ int       ffp_get_audio_codec_info(FFPlayer *ffp, char **codec_info);
 
 /* playback controll */
 int       ffp_prepare_async_l(FFPlayer *ffp, const char *file_name);
-int       ffp_start_from_l(FFPlayer *ffp, long msec);
+int       ffp_start_from_l(FFPlayer *ffp, uint64_t msec);
 int       ffp_start_l(FFPlayer *ffp);
 int       ffp_pause_l(FFPlayer *ffp);
 int       ffp_is_paused_l(FFPlayer *ffp);
@@ -65,8 +65,9 @@ int       ffp_stop_l(FFPlayer *ffp);
 int       ffp_wait_stop_l(FFPlayer *ffp);
 
 /* all in milliseconds */
-int       ffp_seek_to_l(FFPlayer *ffp, long msec);
+int       ffp_seek_to_l(FFPlayer *ffp, uint64_t msec);
 long      ffp_get_current_position_l(FFPlayer *ffp);
+uint32_t  ffp_get_real_time_l(FFPlayer *ffp);
 long      ffp_get_duration_l(FFPlayer *ffp);
 long      ffp_get_playable_duration_l(FFPlayer *ffp);
 void      ffp_set_loop(FFPlayer *ffp, int loop);
@@ -117,5 +118,7 @@ void      ffp_set_property_int64(FFPlayer *ffp, int id, int64_t value);
 
 // must be freed with free();
 struct IjkMediaMeta *ffp_get_meta_l(FFPlayer *ffp);
+
+long ffp_get_frame_l(FFPlayer *ffp, uint8_t **data, int *width, int *height);
 
 #endif

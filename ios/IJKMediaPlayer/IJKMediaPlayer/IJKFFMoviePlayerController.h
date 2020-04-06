@@ -60,7 +60,7 @@
 typedef enum IJKLogLevel {
     k_IJK_LOG_UNKNOWN = 0,
     k_IJK_LOG_DEFAULT = 1,
-
+    
     k_IJK_LOG_VERBOSE = 2,
     k_IJK_LOG_DEBUG   = 3,
     k_IJK_LOG_INFO    = 4,
@@ -79,12 +79,15 @@ typedef enum IJKLogLevel {
                    withOptions:(IJKFFOptions *)options;
 
 - (id)initWithMoreContent:(NSURL *)aUrl
-             withOptions:(IJKFFOptions *)options
-              withGLView:(UIView<IJKSDLGLViewProtocol> *)glView;
+              withOptions:(IJKFFOptions *)options
+               withGLView:(UIView<IJKSDLGLViewProtocol> *)glView;
 
 - (id)initWithMoreContentString:(NSString *)aUrlString
-                 withOptions:(IJKFFOptions *)options
-                  withGLView:(UIView<IJKSDLGLViewProtocol> *)glView;
+                    withOptions:(IJKFFOptions *)options
+                     withGLView:(UIView<IJKSDLGLViewProtocol> *)glView;
+
+- (void)addExtraOptions:(IJKFFOptions *)options
+                withUrl:(NSString *)aUrlString;
 
 - (void)prepareToPlay;
 - (void)play;
@@ -103,7 +106,7 @@ typedef enum IJKLogLevel {
 + (void)setLogLevel:(IJKLogLevel)logLevel;
 + (BOOL)checkIfFFmpegVersionMatch:(BOOL)showAlert;
 + (BOOL)checkIfPlayerVersionMatch:(BOOL)showAlert
-                            version:(NSString *)version;
+                          version:(NSString *)version;
 
 @property(nonatomic, readonly) CGFloat fpsInMeta;
 @property(nonatomic, readonly) CGFloat fpsAtOutput;

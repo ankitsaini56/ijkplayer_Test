@@ -139,14 +139,7 @@ git clone https://github.com/Bilibili/ijkplayer.git ijkplayer-android
 cd ijkplayer-android
 git checkout -B latest k0.8.8
 
-./init-android.sh
-
-cd android/contrib
-./compile-ffmpeg.sh clean
-./compile-ffmpeg.sh all
-
-cd ..
-./compile-ijk.sh all
+./build.sh android
 
 # Android Studio:
 #     Open an existing Android Studio project
@@ -193,11 +186,7 @@ git clone https://github.com/Bilibili/ijkplayer.git ijkplayer-ios
 cd ijkplayer-ios
 git checkout -B latest k0.8.8
 
-./init-ios.sh
-
-cd ios
-./compile-ffmpeg.sh clean
-./compile-ffmpeg.sh all
+./build.sh ios
 
 # Demo
 #     open ios/IJKMediaDemo/IJKMediaDemo.xcodeproj with Xcode

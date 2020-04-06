@@ -41,5 +41,7 @@
 - (IBAction)didSliderValueChanged;
 
 @property(nonatomic,strong) IBOutlet IJKMediaControl *mediaControl;
+@property(atomic,assign) int avIndex;
+@property(atomic,assign) int sid;
 
 @end

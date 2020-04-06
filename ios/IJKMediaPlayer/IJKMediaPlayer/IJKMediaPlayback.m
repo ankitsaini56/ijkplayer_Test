@@ -27,7 +27,7 @@ NSString *const IJKMPMediaPlaybackIsPreparedToPlayDidChangeNotification = @"IJKM
 
 NSString *const IJKMPMoviePlayerPlaybackDidFinishNotification = @"IJKMPMoviePlayerPlaybackDidFinishNotification";
 NSString *const IJKMPMoviePlayerPlaybackDidFinishReasonUserInfoKey =
-    @"IJKMPMoviePlayerPlaybackDidFinishReasonUserInfoKey";
+@"IJKMPMoviePlayerPlaybackDidFinishReasonUserInfoKey";
 NSString *const IJKMPMoviePlayerPlaybackStateDidChangeNotification = @"IJKMPMoviePlayerPlaybackStateDidChangeNotification";
 NSString *const IJKMPMoviePlayerLoadStateDidChangeNotification = @"IJKMPMoviePlayerLoadStateDidChangeNotification";
 
@@ -55,6 +55,10 @@ NSString *const IJKMPMoviePlayerDidAccurateSeekCompleteCurPos = @"IJKMPMoviePlay
 NSString *const IJKMPMoviePlayerSeekAudioStartNotification  = @"IJKMPMoviePlayerSeekAudioStartNotification";
 NSString *const IJKMPMoviePlayerSeekVideoStartNotification  = @"IJKMPMoviePlayerSeekVideoStartNotification";
 
+NSString *const IJKMPMoviePlayerPlayFrameDroppedNotification = @"IJKMPMoviePlayerPlayFrameDroppedNotification";
+NSString *const IJKMPMoviePlayerPlayFrameNotDroppedNotification = @"IJKMPMoviePlayerPlayFrameNotDroppedNotification";
+NSString *const IJKMPMoviePlayerVideoRecordCompleteNotification = @"IJKMPMoviePlayerVideoRecordCompleteNotification";
+
 @implementation IJKMediaUrlOpenData {
     NSString *_url;
     BOOL _handled;
@@ -72,7 +76,7 @@ NSString *const IJKMPMoviePlayerSeekVideoStartNotification  = @"IJKMPMoviePlayer
         self->_event        = event;
         self->_segmentIndex = segmentIndex;
         self->_retryCounter = retryCounter;
-
+        
         self->_error        = 0;
         self->_handled      = NO;
         self->_urlChanged   = NO;
@@ -103,9 +107,9 @@ NSString *const IJKMPMoviePlayerSeekVideoStartNotification  = @"IJKMPMoviePlayer
 - (void)setUrl:(NSString *)url
 {
     assert(url);
-
+    
     _handled = YES;
-
+    
     if (![self.url isEqualToString:url]) {
         _urlChanged = YES;
         _url = url;

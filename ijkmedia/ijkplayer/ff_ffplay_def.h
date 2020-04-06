@@ -227,6 +227,7 @@ typedef struct Frame {
     int format;
     AVRational sar;
     int uploaded;
+    uint32_t avtech_timestamp;
 } Frame;
 
 typedef struct FrameQueue {
@@ -282,9 +283,11 @@ typedef struct VideoState {
     int last_paused;
     int queue_attachments_req;
     int seek_req;
+    int seeking;
     int seek_flags;
     int64_t seek_pos;
     int64_t seek_rel;
+    SDL_mutex *seek_mutex;
 #ifdef FFP_MERGE
     int read_pause_return;
 #endif
@@ -366,6 +369,7 @@ typedef struct VideoState {
     PacketQueue videoq;
     double max_frame_duration;      // maximum duration of a frame - above this, we consider the jump a timestamp discontinuity
     struct SwsContext *img_convert_ctx;
+    struct SwsContext *yuv_to_rgba_ctx;
 #ifdef FFP_SUB
     struct SwsContext *sub_convert_ctx;
 #endif
@@ -418,6 +422,12 @@ typedef struct VideoState {
     SDL_cond  *audio_accurate_seek_cond;
     volatile int initialized_decoder;
     int seek_buffering;
+    uint8_t *rgba_data;
+    int frame_width;
+    int frame_height;
+    SDL_mutex *frame_mutex;
+    uint32_t avtech_timestamp;
+    uint32_t avtech_start_timestamp;
 } VideoState;
 
 /* options specified by the user */
@@ -720,6 +730,13 @@ typedef struct FFPlayer {
     char *mediacodec_default_name;
     int ijkmeta_delay_init;
     int render_wait_start;
+    int enable_get_frame;
+    char *video_record_path;
+    int video_record_duration;
+    float avg_fps;
+    bool frame_dropped;
+    int enable_aec;
+    int disable_multithread_delaying;
 } FFPlayer;
 
 #define fftime_to_milliseconds(ts) (av_rescale(ts, 1000, AV_TIME_BASE))
@@ -859,15 +876,15 @@ inline static void ffp_notify_msg1(FFPlayer *ffp, int what) {
     msg_queue_put_simple3(&ffp->msg_queue, what, 0, 0);
 }
 
-inline static void ffp_notify_msg2(FFPlayer *ffp, int what, int arg1) {
+inline static void ffp_notify_msg2(FFPlayer *ffp, int what, uint64_t arg1) {
     msg_queue_put_simple3(&ffp->msg_queue, what, arg1, 0);
 }
 
-inline static void ffp_notify_msg3(FFPlayer *ffp, int what, int arg1, int arg2) {
+inline static void ffp_notify_msg3(FFPlayer *ffp, int what, uint64_t arg1, int arg2) {
     msg_queue_put_simple3(&ffp->msg_queue, what, arg1, arg2);
 }
 
-inline static void ffp_notify_msg4(FFPlayer *ffp, int what, int arg1, int arg2, void *obj, int obj_len) {
+inline static void ffp_notify_msg4(FFPlayer *ffp, int what, uint64_t arg1, int arg2, void *obj, int obj_len) {
     msg_queue_put_simple4(&ffp->msg_queue, what, arg1, arg2, obj, obj_len);
 }
 

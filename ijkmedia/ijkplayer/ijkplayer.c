@@ -311,6 +311,13 @@ void ijkmp_shutdown(IjkMediaPlayer *mp)
     return ijkmp_shutdown_l(mp);
 }
 
+void ijkmp_safe_shutdown(IjkMediaPlayer *mp)
+{
+    pthread_mutex_lock(&mp->mutex);
+    ijkmp_shutdown_l(mp);
+    pthread_mutex_unlock(&mp->mutex);
+}
+
 void ijkmp_inc_ref(IjkMediaPlayer *mp)
 {
     assert(mp);
@@ -574,7 +581,7 @@ static int ikjmp_chkst_seek_l(int mp_state)
     return 0;
 }
 
-int ijkmp_seek_to_l(IjkMediaPlayer *mp, long msec)
+int ijkmp_seek_to_l(IjkMediaPlayer *mp, uint64_t msec)
 {
     assert(mp);
 
@@ -583,13 +590,13 @@ int ijkmp_seek_to_l(IjkMediaPlayer *mp, long msec)
     mp->seek_req = 1;
     mp->seek_msec = msec;
     ffp_remove_msg(mp->ffplayer, FFP_REQ_SEEK);
-    ffp_notify_msg2(mp->ffplayer, FFP_REQ_SEEK, (int)msec);
+    ffp_notify_msg2(mp->ffplayer, FFP_REQ_SEEK, msec);
     // TODO: 9 64-bit long?
 
     return 0;
 }
 
-int ijkmp_seek_to(IjkMediaPlayer *mp, long msec)
+int ijkmp_seek_to(IjkMediaPlayer *mp, uint64_t msec)
 {
     assert(mp);
     MPTRACE("ijkmp_seek_to(%ld)\n", msec);
@@ -608,8 +615,6 @@ int ijkmp_get_state(IjkMediaPlayer *mp)
 
 static long ijkmp_get_current_position_l(IjkMediaPlayer *mp)
 {
-    if (mp->seek_req)
-        return mp->seek_msec;
     return ffp_get_current_position_l(mp->ffplayer);
 }
 
@@ -618,10 +623,22 @@ long ijkmp_get_current_position(IjkMediaPlayer *mp)
     assert(mp);
     pthread_mutex_lock(&mp->mutex);
     long retval;
-    if (mp->seek_req)
-        retval = mp->seek_msec;
-    else
-        retval = ijkmp_get_current_position_l(mp);
+    retval = ijkmp_get_current_position_l(mp);
+    pthread_mutex_unlock(&mp->mutex);
+    return retval;
+}
+
+static uint32_t ijkmp_get_real_time_l(IjkMediaPlayer *mp)
+{
+    return ffp_get_real_time_l(mp->ffplayer);
+}
+
+uint32_t ijkmp_get_real_time(IjkMediaPlayer *mp)
+{
+    assert(mp);
+    pthread_mutex_lock(&mp->mutex);
+    long retval;
+    retval = ijkmp_get_real_time_l(mp);
     pthread_mutex_unlock(&mp->mutex);
     return retval;
 }
@@ -795,4 +812,24 @@ int ijkmp_get_msg(IjkMediaPlayer *mp, AVMessage *msg, int block)
     }
 
     return -1;
+}
+
+static long ijkmp_get_frame_l(IjkMediaPlayer *mp, uint8_t **data, int *w, int *h)
+{
+    MPST_RET_IF_EQ(mp->mp_state, MP_STATE_IDLE);
+    MPST_RET_IF_EQ(mp->mp_state, MP_STATE_INITIALIZED);
+    MPST_RET_IF_EQ(mp->mp_state, MP_STATE_ASYNC_PREPARING);
+    MPST_RET_IF_EQ(mp->mp_state, MP_STATE_STOPPED);
+    MPST_RET_IF_EQ(mp->mp_state, MP_STATE_ERROR);
+    MPST_RET_IF_EQ(mp->mp_state, MP_STATE_END);
+    return ffp_get_frame_l(mp->ffplayer, data, w, h);
+}
+
+long ijkmp_get_frame(IjkMediaPlayer *mp, uint8_t **data, int *w, int *h)
+{
+    assert(mp);
+    pthread_mutex_lock(&mp->mutex);
+    long retval = ijkmp_get_frame_l(mp, data, w, h);
+    pthread_mutex_unlock(&mp->mutex);
+    return retval;
 }

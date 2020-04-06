@@ -39,6 +39,7 @@
 #include "ijksdl/android/ijksdl_android_jni.h"
 #include "ijksdl/android/ijksdl_codec_android_mediadef.h"
 #include "ijkavformat/ijkavformat.h"
+#include "ijkplayer_internal.h"
 
 #define JNI_MODULE_PACKAGE      "tv/danmaku/ijk/media/player"
 #define JNI_CLASS_IJKPLAYER     "tv/danmaku/ijk/media/player/IjkMediaPlayer"
@@ -348,6 +349,20 @@ LABEL_RETURN:
 }
 
 static jlong
+IjkMediaPlayer_getRealTime(JNIEnv *env, jobject thiz)
+{
+    jlong retval = 0;
+    IjkMediaPlayer *mp = jni_get_media_player(env, thiz);
+    JNI_CHECK_GOTO(mp, env, NULL, "mpjni: getRealTime: null mp", LABEL_RETURN);
+
+    retval = ijkmp_get_real_time(mp);
+
+LABEL_RETURN:
+    ijkmp_dec_ref_p(&mp);
+    return retval;
+}
+
+static jlong
 IjkMediaPlayer_getDuration(JNIEnv *env, jobject thiz)
 {
     jlong retval = 0;
@@ -371,7 +386,7 @@ IjkMediaPlayer_release(JNIEnv *env, jobject thiz)
 
     ijkmp_android_set_surface(env, mp, NULL);
     // explicit shutdown mp, in case it is not the last mp-ref here
-    ijkmp_shutdown(mp);
+    ijkmp_safe_shutdown(mp);
     //only delete weak_thiz at release
     jobject weak_thiz = (jobject) ijkmp_set_weak_thiz(mp, NULL );
     (*env)->DeleteGlobalRef(env, weak_thiz);
@@ -914,7 +929,7 @@ static void message_loop_n(JNIEnv *env, IjkMediaPlayer *mp)
             post_event(env, weak_thiz, MEDIA_NOP, 0, 0);
             break;
         case FFP_MSG_ERROR:
-            MPTRACE("FFP_MSG_ERROR: %d\n", msg.arg1);
+            MPTRACE("FFP_MSG_ERROR: %lld\n", msg.arg1);
             post_event(env, weak_thiz, MEDIA_ERROR, MEDIA_ERROR_IJK_PLAYER, msg.arg1);
             break;
         case FFP_MSG_PREPARED:
@@ -926,11 +941,11 @@ static void message_loop_n(JNIEnv *env, IjkMediaPlayer *mp)
             post_event(env, weak_thiz, MEDIA_PLAYBACK_COMPLETE, 0, 0);
             break;
         case FFP_MSG_VIDEO_SIZE_CHANGED:
-            MPTRACE("FFP_MSG_VIDEO_SIZE_CHANGED: %d, %d\n", msg.arg1, msg.arg2);
+            MPTRACE("FFP_MSG_VIDEO_SIZE_CHANGED: %lld, %d\n", msg.arg1, msg.arg2);
             post_event(env, weak_thiz, MEDIA_SET_VIDEO_SIZE, msg.arg1, msg.arg2);
             break;
         case FFP_MSG_SAR_CHANGED:
-            MPTRACE("FFP_MSG_SAR_CHANGED: %d, %d\n", msg.arg1, msg.arg2);
+            MPTRACE("FFP_MSG_SAR_CHANGED: %lld, %d\n", msg.arg1, msg.arg2);
             post_event(env, weak_thiz, MEDIA_SET_VIDEO_SAR, msg.arg1, msg.arg2);
             break;
         case FFP_MSG_VIDEO_RENDERING_START:
@@ -942,7 +957,7 @@ static void message_loop_n(JNIEnv *env, IjkMediaPlayer *mp)
             post_event(env, weak_thiz, MEDIA_INFO, MEDIA_INFO_AUDIO_RENDERING_START, 0);
             break;
         case FFP_MSG_VIDEO_ROTATION_CHANGED:
-            MPTRACE("FFP_MSG_VIDEO_ROTATION_CHANGED: %d\n", msg.arg1);
+            MPTRACE("FFP_MSG_VIDEO_ROTATION_CHANGED: %lld\n", msg.arg1);
             post_event(env, weak_thiz, MEDIA_INFO, MEDIA_INFO_VIDEO_ROTATION_CHANGED, msg.arg1);
             break;
         case FFP_MSG_AUDIO_DECODED_START:
@@ -1019,6 +1034,16 @@ static void message_loop_n(JNIEnv *env, IjkMediaPlayer *mp)
             MPTRACE("FFP_MSG_AUDIO_SEEK_RENDERING_START:\n");
             post_event(env, weak_thiz, MEDIA_INFO, MEDIA_INFO_AUDIO_SEEK_RENDERING_START, msg.arg1);
             break;
+        case FFP_MSG_FRAME_DROPPED:
+            post_event(env, weak_thiz, MEDIA_INFO, MEDIA_INFO_FRAME_DROPPED, 0);
+            break;
+        case FFP_MSG_FRAME_NOT_DROPPED:
+            post_event(env, weak_thiz, MEDIA_INFO, MEDIA_INFO_FRAME_NOT_DROPPED, 0);
+            break;
+        case FFP_MSG_VIDEO_RECORD_COMPLETE:
+            post_event(env, weak_thiz, MEDIA_INFO, MEDIA_INFO_VIDEO_RECORD_COMPLETE, 0);
+            break;
+
         default:
             ALOGE("unknown FFP_MSG_xxx(%d)\n", msg.what);
             break;
@@ -1127,7 +1152,43 @@ LABEL_RETURN:
     return;
 }
 
+static jbyteArray
+IjkMediaPlayer_getRGBAFrame(JNIEnv *env, jobject thiz, jintArray jwidth, jintArray jheight)
+{
+    jbyteArray jframe = NULL;
+    jlong retval = 0;
+    IjkMediaPlayer *mp = jni_get_media_player(env, thiz);
+    JNI_CHECK_GOTO(mp, env, NULL, "mpjni: getFrame: null mp", LABEL_RETURN);
 
+    uint8_t *frame;
+    int w, h;
+
+    retval = ijkmp_get_frame(mp, &frame, &w, &h);
+
+    if (retval != 0) {
+        ijkmp_dec_ref_p(&mp);
+        return NULL;
+    }
+
+    jint *width = (jint*) (*env)->GetIntArrayElements( env, jwidth, NULL );
+    jint *height = (jint*) (*env)->GetIntArrayElements( env, jheight, NULL );
+    int size = w * h * 4;
+
+    jframe = (*env)->NewByteArray( env, size );
+    jbyte *cframe = (*env)->GetByteArrayElements( env, jframe, NULL );
+    memcpy(cframe, frame, size);
+    free(frame);
+
+    width[0] = w;
+    height[0] = h;
+    (*env)->ReleaseByteArrayElements( env, jframe, cframe, 0 );
+    (*env)->ReleaseIntArrayElements( env, jwidth, width, 0 );
+    (*env)->ReleaseIntArrayElements( env, jheight, height, 0 );
+
+LABEL_RETURN:
+    ijkmp_dec_ref_p(&mp);
+    return jframe;
+}
 
 
 
@@ -1151,6 +1212,7 @@ static JNINativeMethod g_methods[] = {
     { "_pause",                 "()V",      (void *) IjkMediaPlayer_pause },
     { "isPlaying",              "()Z",      (void *) IjkMediaPlayer_isPlaying },
     { "getCurrentPosition",     "()J",      (void *) IjkMediaPlayer_getCurrentPosition },
+    { "getRealTime",            "()J",      (void *) IjkMediaPlayer_getRealTime },
     { "getDuration",            "()J",      (void *) IjkMediaPlayer_getDuration },
     { "_release",               "()V",      (void *) IjkMediaPlayer_release },
     { "_reset",                 "()V",      (void *) IjkMediaPlayer_reset },
@@ -1180,6 +1242,7 @@ static JNINativeMethod g_methods[] = {
 
     { "native_setLogLevel",     "(I)V",                     (void *) IjkMediaPlayer_native_setLogLevel },
     { "_setFrameAtTime",        "(Ljava/lang/String;JJII)V", (void *) IjkMediaPlayer_setFrameAtTime },
+    { "getRGBAFrame",           "([I[I)[B",                 (void *) IjkMediaPlayer_getRGBAFrame },
 };
 
 JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved)

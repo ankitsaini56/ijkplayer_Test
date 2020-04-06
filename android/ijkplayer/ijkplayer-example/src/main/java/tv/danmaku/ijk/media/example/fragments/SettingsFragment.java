@@ -18,18 +18,45 @@
 package tv.danmaku.ijk.media.example.fragments;
 
 import android.os.Bundle;
+import android.support.annotation.Nullable;
+import android.support.v4.app.Fragment;
 import android.support.v7.preference.PreferenceFragmentCompat;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.ListView;
+import android.widget.TextView;
 
 import tv.danmaku.ijk.media.example.R;
+import tv.danmaku.ijk.media.example.activities.VideoActivity;
 
-public class SettingsFragment extends PreferenceFragmentCompat {
+public class SettingsFragment extends Fragment {
+    private EditText mEditUrl;
+    private Button mButton;
+
     public static SettingsFragment newInstance() {
         SettingsFragment f = new SettingsFragment();
         return f;
     }
 
+    @Nullable
     @Override
-    public void onCreatePreferences(Bundle bundle, String s) {
-        addPreferencesFromResource(R.xml.settings);
+    public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        ViewGroup viewGroup = (ViewGroup) inflater.inflate(R.layout.fragment_input_url, container, false);
+        mEditUrl = viewGroup.findViewById(R.id.edit_url);
+        mButton = viewGroup.findViewById(R.id.btn_play);
+
+        mButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                String url = mEditUrl.getText().toString();
+                if (url.length() > 0) {
+                    VideoActivity.intentTo(getContext(), url, "input url");
+                }
+            }
+        });
+        return viewGroup;
     }
 }
