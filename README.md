@@ -82,6 +82,14 @@ dependencies {
 
 ### Before Build
 ```
+# install TUTK SDK
+put header files to android/contrib/iotc/Include/
+put android java to android/ijkplayer/ijkplayer-example/src/main/java/com/tutk/IOTC/
+put android .so to android/ijkplayer/ijkplayer-example/src/main/jniLibs/
+put ios .a to ios/IJKMediaDemo/IJKMediaDemo/
+```
+
+```
 # install homebrew, git, yasm
 ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 brew install git
