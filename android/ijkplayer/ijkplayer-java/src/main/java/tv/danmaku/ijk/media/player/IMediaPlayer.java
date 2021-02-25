@@ -111,6 +111,8 @@ public interface IMediaPlayer {
 
     long getRealTime();
 
+    long getAvtechPlaybackStatus();
+
     long getDuration();
 
     void release();
@@ -183,6 +185,10 @@ public interface IMediaPlayer {
 
     interface OnTimedTextListener {
         void onTimedText(IMediaPlayer mp, IjkTimedText text);
+    }
+
+    interface OnCompleteListener {
+        void onComplete(int result);
     }
 
     /*--------------------

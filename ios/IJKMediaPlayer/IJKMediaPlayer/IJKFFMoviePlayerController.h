@@ -70,7 +70,16 @@ typedef enum IJKLogLevel {
     k_IJK_LOG_SILENT  = 8,
 } IJKLogLevel;
 
-@interface IJKFFMoviePlayerController : NSObject <IJKMediaPlayback>
+@protocol ARDAppClientDelegate;
+
+@interface IJKFFMoviePlayerController : NSObject <IJKMediaPlayback, ARDAppClientDelegate>
+
+- (id)initWithWebRTC:(NSString *)udid
+      withCredential:(NSString *)credential
+         withAmToken:(NSString *)amToken
+           withRealm:(NSString *)realm
+       withNebulaAPI:(const NebulaAPI *)nebulaAPIs
+         withOptions:(IJKFFOptions *)options;
 
 - (id)initWithContentURL:(NSURL *)aUrl
              withOptions:(IJKFFOptions *)options;

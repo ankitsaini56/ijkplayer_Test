@@ -43,5 +43,8 @@
 @property(nonatomic,strong) IBOutlet IJKMediaControl *mediaControl;
 @property(atomic,assign) int avIndex;
 @property(atomic,assign) int sid;
+@property (nonatomic, strong) NSTimer *timer;
+@property (nonatomic, strong) UIImageView *image;
+@property (nonatomic, strong) UIImageView *subImage;
 
 @end

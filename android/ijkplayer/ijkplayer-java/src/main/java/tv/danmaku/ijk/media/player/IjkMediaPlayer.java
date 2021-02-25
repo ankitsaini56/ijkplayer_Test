@@ -59,6 +59,7 @@ import tv.danmaku.ijk.media.player.misc.IMediaDataSource;
 import tv.danmaku.ijk.media.player.misc.ITrackInfo;
 import tv.danmaku.ijk.media.player.misc.IjkFrame;
 import tv.danmaku.ijk.media.player.misc.IjkTrackInfo;
+import tv.danmaku.ijk.media.player.misc.ObjectTrackingInfo;
 import tv.danmaku.ijk.media.player.pragma.DebugLog;
 
 /**
@@ -109,6 +110,7 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
     public static final int PROP_FLOAT_VIDEO_DECODE_FRAMES_PER_SECOND       = 10001;
     public static final int PROP_FLOAT_VIDEO_OUTPUT_FRAMES_PER_SECOND       = 10002;
     public static final int FFP_PROP_FLOAT_PLAYBACK_RATE                    = 10003;
+    public static final int FFP_PROP_FLOAT_AVDIFF                           = 10005;
     public static final int FFP_PROP_FLOAT_DROP_FRAME_RATE                  = 10007;
 
     public static final int FFP_PROP_INT64_SELECTED_VIDEO_STREAM            = 20001;
@@ -141,6 +143,7 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
     public static final int FFP_PROP_INT64_TCP_SPEED                        = 20200;
     public static final int FFP_PROP_INT64_LATEST_SEEK_LOAD_DURATION        = 20300;
     public static final int FFP_PROP_INT64_IMMEDIATE_RECONNECT              = 20211;
+    public static final int FFP_PROP_INT64_VIDEO_FRAME_TIMESTAMP            = 20301;
     //----------------------------------------
 
     @AccessedByNative
@@ -682,6 +685,9 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
     public native long getRealTime();
 
     @Override
+    public native long getAvtechPlaybackStatus();
+
+    @Override
     public native long getDuration();
 
     /**
@@ -842,6 +848,14 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
         return _getPropertyLong(FFP_PROP_INT64_LATEST_SEEK_LOAD_DURATION, 0);
     }
 
+    public long getVideoFrameTimestamp() {
+        return _getPropertyLong(FFP_PROP_INT64_VIDEO_FRAME_TIMESTAMP, 0);
+    }
+
+    public float getAvdiff() {
+        return _getPropertyFloat(FFP_PROP_FLOAT_AVDIFF, 0.0f);
+    }
+
     private native float _getPropertyFloat(int property, float defaultValue);
     private native void  _setPropertyFloat(int property, float value);
     private native long  _getPropertyLong(int property, long defaultValue);
@@ -850,6 +864,8 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
     public float getDropFrameRate() {
         return _getPropertyFloat(FFP_PROP_FLOAT_DROP_FRAME_RATE, .0f);
     }
+
+    public native float getVolume();
 
     @Override
     public native void setVolume(float leftVolume, float rightVolume);
@@ -1289,13 +1305,14 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
     public static native void native_profileEnd();
     public static native void native_setLogLevel(int level);
 
-    public native byte [] getRGBAFrame(int [] w, int [] h);
+    public native byte [] getRGBAFrame(int [] w, int [] h, String [] meta);
 
     public IjkFrame getFrame() {
         byte[] pixels;
         int [] w = new int[1];
         int [] h = new int[1];
-        pixels = getRGBAFrame(w, h);
+        String [] meta = new String[1];
+        pixels = getRGBAFrame(w, h, meta);
 
         if (pixels == null) {
             return null;
@@ -1306,6 +1323,7 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
         frame.width = w[0];
         frame.height = h[0];
         frame.pixelFormat = IjkFrame.PixelFormat.RGBA;
+        frame.trackingInfo = ObjectTrackingInfo.parse(meta[0]);
         return frame;
     }
 

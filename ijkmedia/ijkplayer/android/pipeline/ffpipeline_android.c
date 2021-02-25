@@ -280,6 +280,16 @@ bool ffpipeline_select_mediacodec_l(IJKFF_Pipeline* pipeline, ijkmp_mediacodecin
     return pipeline->opaque->mediacodec_select_callback(pipeline->opaque->mediacodec_select_callback_opaque, mcc);
 }
 
+float ffpipeline_get_volume(IJKFF_Pipeline* pipeline)
+{
+    ALOGD("%s\n", __func__);
+    if (!check_ffpipeline(pipeline, __func__))
+        return 1.0;
+
+    IJKFF_Pipeline_Opaque *opaque = pipeline->opaque;
+    return opaque->left_volume;
+}
+
 void ffpipeline_set_volume(IJKFF_Pipeline* pipeline, float left, float right)
 {
     ALOGD("%s\n", __func__);

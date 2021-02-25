@@ -45,8 +45,8 @@ public class SettingsFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         ViewGroup viewGroup = (ViewGroup) inflater.inflate(R.layout.fragment_input_url, container, false);
-        mEditUrl = viewGroup.findViewById(R.id.edit_url);
-        mButton = viewGroup.findViewById(R.id.btn_play);
+        mEditUrl = (EditText) viewGroup.findViewById(R.id.edit_url);
+        mButton = (Button) viewGroup.findViewById(R.id.btn_play);
 
         mButton.setOnClickListener(new View.OnClickListener() {
             @Override

@@ -23,6 +23,7 @@
 
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
+#import "Nebula_interface.h"
 
 typedef NS_ENUM(NSInteger, IJKMPMovieScalingMode) {
     IJKMPMovieScalingModeNone,       // No scaling
@@ -61,15 +62,23 @@ typedef NS_ENUM(NSInteger, IJKMPMovieTimeOption) {
     IJKMPMovieTimeOptionExact
 };
 
+typedef NS_ENUM(NSInteger, Mode) {
+    EPAN,
+    PIP,
+    OBJECT_DETECT
+};
+
 @interface Frame : NSObject
 
 @property(nonatomic, readonly) NSData *pixels;
 @property(nonatomic, readonly) int width;
 @property(nonatomic, readonly) int height;
+@property(nonatomic, readonly) CGRect roi;
 
 - (instancetype)initFrame:(NSData *)pixels
                 withWidth:(int)w
-                andHeight:(int)h;
+                andHeight:(int)h
+                andROI:(CGRect)roi;
 
 @end
 
@@ -90,10 +99,24 @@ typedef NS_ENUM(NSInteger, IJKMPMovieTimeOption) {
 - (int) startVideoRecord:(NSString *)path
             withDuration:(int)durationInSeconds;
 - (int) stopVideoRecord;
+- (int) toMp4:(NSString *)path;
+- (int) draw:(Frame *)frame
+withMainView:(UIImageView *)mainView
+  andSubView:(UIImageView *)subView
+     andMode:(Mode)mode;
+
+- (int64_t)videoFrameTimestamp;
+- (float)videoDecodeFramesPerSecond;
+- (float)videoOutputFramesPerSecond;
+- (int64_t)videoBitRate;
+- (int64_t)videoCachedDuration;
+- (int64_t)audioCachedDuration;
+- (float)avdiff;
 
 @property(nonatomic, readonly)  UIView *view;
 @property(nonatomic)            NSTimeInterval currentPlaybackTime;
 @property(nonatomic, readonly)  NSTimeInterval realTime;
+@property(nonatomic, readonly)  NSInteger avtechPlaybackStatus;
 @property(nonatomic, readonly)  NSTimeInterval duration;
 @property(nonatomic, readonly)  NSTimeInterval playableDuration;
 @property(nonatomic, readonly)  NSInteger bufferingProgress;
@@ -119,6 +142,10 @@ typedef NS_ENUM(NSInteger, IJKMPMovieTimeOption) {
 @property (nonatomic) float playbackVolume;
 
 @property (nonatomic, readonly) Frame *RGBAFrame;
+@property (nonatomic) int currentX;
+@property (nonatomic) int currentY;
+@property (nonatomic) CGRect roi;
+@property (nonatomic) NSTimeInterval lastFoundObjectTime;
 
 - (UIImage *)thumbnailImageAtCurrentTime;
 

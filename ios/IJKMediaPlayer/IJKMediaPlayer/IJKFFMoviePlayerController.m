@@ -32,10 +32,18 @@
 #import "IJKNotificationManager.h"
 #import "NSString+IJKMedia.h"
 #import "ijkioapplication.h"
+#import <WebRTC/WebRTC.h>
+#import "ARDAppClient.h"
+#import "ARDCaptureController.h"
+#import "ARDSettingsModel.h"
+#import "Nebula_interface.h"
 #include "string.h"
 
-static const char *kIJKFFRequiredFFmpegVersion = "0.1.6";
-static const char *kIJKVideoViewVersion = "0.3.3";
+static const char *kIJKFFRequiredFFmpegVersion = "0.2.6";
+static const char *kIJKVideoViewVersion = "0.6.3";
+static const int MIN_DISTANCE = 5;
+static const float TRACKING_SPEED = 0.05f;
+static const int TRACKING_THRESHOLD_IN_SECONDS = 3;
 
 // It means you didn't call shutdown if you found this object leaked.
 @interface IJKWeakHolder : NSObject
@@ -75,6 +83,9 @@ static const char *kIJKVideoViewVersion = "0.3.3";
     IjkIOAppCacheStatistic _cacheStat;
     NSTimer *_hudTimer;
     IJKSDLHudViewController *_hudViewController;
+    
+    ARDAppClient *_client;
+    ARDCaptureController *_captureController;
 }
 
 @synthesize view = _view;
@@ -105,8 +116,82 @@ static const char *kIJKVideoViewVersion = "0.3.3";
 @synthesize isVideoSync = _isVideoSync;
 
 @synthesize RGBAFrame;
+@synthesize currentX = _currentX;
+@synthesize currentY = _currentY;
+@synthesize roi = _roi;
+@synthesize lastFoundObjectTime = _lastFoundObjectTime;
 
 #define FFP_IO_STAT_STEP (50 * 1024)
+
+#pragma mark - ARDAppClientDelegate
+
+- (void)appClient:(ARDAppClient *)client
+    didChangeState:(ARDAppClientState)state {
+  switch (state) {
+    case kARDAppClientStateConnected:
+      NSLog(@"WebRTC Client connected.");
+      break;
+    case kARDAppClientStateConnecting:
+      NSLog(@"WebRTC Client connecting.");
+      break;
+    case kARDAppClientStateDisconnected:
+      NSLog(@"WebRTC Client disconnected.");
+      break;
+  }
+}
+
+- (void)appClient:(ARDAppClient *)client
+    didChangeConnectionState:(RTCIceConnectionState)state {
+    NSLog(@"ICE state changed: %ld", (long)state);
+}
+
+- (void)appClient:(ARDAppClient *)client
+    didCreateLocalCapturer:(RTCCameraVideoCapturer *)localCapturer {
+    ARDSettingsModel *settingsModel = [[ARDSettingsModel alloc] init];
+    _captureController = [[ARDCaptureController alloc] initWithCapturer:localCapturer settings:settingsModel];
+    [_captureController startCapture];
+}
+
+- (void)appClient:(ARDAppClient *)client
+    didCreateLocalFileCapturer:(RTCFileVideoCapturer *)fileCapturer {
+}
+
+- (void)appClient:(ARDAppClient *)client
+    didReceiveLocalVideoTrack:(RTCVideoTrack *)localVideoTrack {
+}
+
+- (void)appClient:(ARDAppClient *)client
+    didReceiveRemoteVideoTrack:(RTCVideoTrack *)remoteVideoTrack {
+}
+
+- (void)appClient:(ARDAppClient *)client
+      didGetStats:(NSArray *)stats {
+}
+
+- (void)appClient:(ARDAppClient *)client
+         didError:(NSError *)error {
+    NSString *message = [NSString stringWithFormat:@"%@", error.localizedDescription];
+    NSLog(@"didError %@", message);
+}
+
+#pragma mark - RTCVideoViewDelegate
+
+- (void)videoView:(id<RTCVideoRenderer>)videoView didChangeVideoSize:(CGSize)size {
+}
+
+#pragma mark - RTCAudioSessionDelegate
+
+- (void)audioSession:(RTCAudioSession *)audioSession
+    didDetectPlayoutGlitch:(int64_t)totalNumberOfGlitches {
+}
+
+- (void)stopWebRTC {
+    if (_captureController != nil) {
+        [_captureController stopCapture];
+        _captureController = nil;
+    }
+    [_client disconnect];
+}
 
 // as an example
 void IJKFFIOStatDebugCallback(const char *url, int type, int bytes)
@@ -156,6 +241,24 @@ void IJKFFIOStatCompleteRegister(void (*cb)(const char *url,
     ijkmp_io_stat_complete_register(cb);
 }
 
+- (id)initWithWebRTC:(NSString *)udid
+      withCredential:(NSString *)credential
+         withAmToken:(NSString *)amToken
+           withRealm:(NSString *)realm
+       withNebulaAPI:(const NebulaAPI *)nebulaAPIs
+         withOptions:(IJKFFOptions *)options {
+  long webrtc_api;
+  long webrtc_id = [self startWebRTC:udid
+                      withCredential:credential
+                          andAmToken:amToken
+                            andRealm:realm
+                        andNebulaAPI:nebulaAPIs
+                        andWebRTCApi:&webrtc_api];
+  NSURL *url = [NSURL URLWithString:[NSString stringWithFormat:@"webrtc://tutk.com?pc_id=%ld", webrtc_id]];
+  [options setFormatOptionIntValue:(int64_t)webrtc_api forKey:@"webrtc_api"];
+  return [self initWithContentURL:url withOptions:options];
+}
+
 - (id)initWithContentURL:(NSURL *)aUrl
              withOptions:(IJKFFOptions *)options
 {
@@ -173,6 +276,25 @@ void IJKFFIOStatCompleteRegister(void (*cb)(const char *url,
 {
     [IJKMediaModule sharedModule].mediaModuleIdleTimerDisabled = on;
     // [UIApplication sharedApplication].idleTimerDisabled = on;
+}
+
+- (long)startWebRTC:(NSString *)udid
+    withCredential:(NSString *)credential
+        andAmToken:(NSString *)amToken
+          andRealm:(NSString *)realm
+      andNebulaAPI:(const NebulaAPI *)nebulaAPI
+      andWebRTCApi:(long *)webRTCApi
+{
+    ARDSettingsModel *settingsModel = [[ARDSettingsModel alloc] init];
+    settingsModel.udid = udid;
+    settingsModel.credential = credential;
+    settingsModel.amToken = amToken;
+    settingsModel.realm = realm;
+    
+    _client = [[ARDAppClient alloc] initWithDelegate:self andNebulaAPI:nebulaAPI];
+    long webrtc_id = [_client connectToRoomWithId:@"dummy" settings:settingsModel isLoopback:false];
+    *webRTCApi = [_client getWebRTCApi];
+    return webrtc_id;
 }
 
 - (id)initWithContentURLString:(NSString *)aUrlString
@@ -373,7 +495,8 @@ void IJKFFIOStatCompleteRegister(void (*cb)(const char *url,
 - (void)addExtraOptions:(IJKFFOptions *)options
                 withUrl:(NSString *)aUrlString
 {
-    if ([aUrlString hasPrefix:@"rtsp://"] || [aUrlString hasPrefix:@"avapi://"]) {
+  if ([aUrlString hasPrefix:@"rtsp://"] || [aUrlString hasPrefix:@"avapi://"] ||
+      [aUrlString hasPrefix:@"webrtc://"]) {
         if ([options getOptionIntValue:@"analyzemaxduration" ofCategory:kIJKFFOptionCategoryFormat] == -1) {
             [options setOptionIntValue:100 forKey:@"analyzemaxduration" ofCategory:kIJKFFOptionCategoryFormat];
         }
@@ -416,6 +539,9 @@ void IJKFFIOStatCompleteRegister(void (*cb)(const char *url,
     if (!_mediaPlayer)
         return;
     
+    self.currentX = -1;
+    self.currentY = -1;
+    self.lastFoundObjectTime = -1.0;
     [self setScreenOn:_keepScreenOnWhilePlaying];
     
     ijkmp_set_data_source(_mediaPlayer, [_urlString UTF8String]);
@@ -607,7 +733,7 @@ inline static int getPlayerOption(IJKFFOptionCategory category)
     
     ijkmp_stop(_mediaPlayer);
     ijkmp_shutdown(_mediaPlayer);
-    
+    [self stopWebRTC];
     [self performSelectorOnMainThread:@selector(shutdownClose:) withObject:self waitUntilDone:YES];
 }
 
@@ -708,6 +834,14 @@ inline static int getPlayerOption(IJKFFOptionCategory category)
         return -1;
     
     return ret;
+}
+
+- (NSInteger)avtechPlaybackStatus
+{
+    if (!_mediaPlayer)
+        return 0;
+    
+    return ijkmp_get_avtech_playback_status(_mediaPlayer);
 }
 
 - (NSTimeInterval)duration
@@ -1036,6 +1170,56 @@ inline static NSString *formatedSpeed(int64_t bytes, int64_t elapsed_milli) {
         return 0;
     return ijkmp_get_property_float(_mediaPlayer, FFP_PROP_FLOAT_DROP_FRAME_RATE, 0.0f);
 }
+
+- (int64_t)videoFrameTimestamp
+{
+    if (!_mediaPlayer)
+        return 0;
+    return ijkmp_get_property_int64(_mediaPlayer, FFP_PROP_INT64_VIDEO_FRAME_TIMESTAMP, 0);
+}
+
+- (float)videoDecodeFramesPerSecond
+{
+    if (!_mediaPlayer)
+        return 0.0f;
+    return ijkmp_get_property_float(_mediaPlayer, FFP_PROP_FLOAT_VIDEO_DECODE_FRAMES_PER_SECOND, 0.0f);
+}
+
+- (float)videoOutputFramesPerSecond
+{
+    if (!_mediaPlayer)
+        return 0.0f;
+    return ijkmp_get_property_float(_mediaPlayer, FFP_PROP_FLOAT_VIDEO_OUTPUT_FRAMES_PER_SECOND, 0.0f);
+}
+
+- (int64_t)videoBitRate
+{
+    if (!_mediaPlayer)
+        return 0;
+    return ijkmp_get_property_int64(_mediaPlayer, FFP_PROP_INT64_BIT_RATE, 0);
+}
+
+- (int64_t)videoCachedDuration
+{
+    if (!_mediaPlayer)
+        return 0;
+    return ijkmp_get_property_int64(_mediaPlayer, FFP_PROP_INT64_VIDEO_CACHED_DURATION, 0);
+}
+
+- (int64_t)audioCachedDuration
+{
+    if (!_mediaPlayer)
+        return 0;
+    return ijkmp_get_property_int64(_mediaPlayer, FFP_PROP_INT64_AUDIO_CACHED_DURATION, 0);
+}
+
+- (float)avdiff
+{
+    if (!_mediaPlayer)
+        return 0.0f;
+    return ijkmp_get_property_float(_mediaPlayer, FFP_PROP_FLOAT_AVDIFF, 0.0f);
+}
+
 
 inline static void fillMetaInternal(NSMutableDictionary *meta, IjkMediaMeta *rawMeta, const char *name, NSString *defaultValue)
 {
@@ -1374,7 +1558,8 @@ inline static void fillMetaInternal(NSMutableDictionary *meta, IjkMediaMeta *raw
         case FFP_MSG_VIDEO_RECORD_COMPLETE: {
             [[NSNotificationCenter defaultCenter]
              postNotificationName:IJKMPMoviePlayerVideoRecordCompleteNotification
-             object:self];
+             object:self
+             userInfo:@{@"error": @(avmsg->arg1)}];
             break;
         }
         default:
@@ -1863,6 +2048,71 @@ static int ijkff_inject_callback(void *opaque, int message, void *data, size_t d
     }
 }
 
+- (CGRect) parseMetaData:(const unsigned char *)meta
+{
+    CGRect r;
+    r.size.width = r.size.height = 0;
+
+    NSData *nsMeta = [NSData dataWithBytes:meta length:strlen(meta)];
+    NSDictionary *jsonDict = [NSJSONSerialization JSONObjectWithData:nsMeta options:NSJSONReadingMutableContainers error:nil];
+    NSDictionary *jsonAGTX = jsonDict[@"AGTX"];
+    if (jsonAGTX == nil) {
+        jsonAGTX = jsonDict[@"agtx"];
+    }
+    if (jsonAGTX == nil) {
+        return r;
+    }
+    NSDictionary *jsonIVA = jsonAGTX[@"iva"];
+    if (jsonIVA == nil) {
+        return r;
+    }
+
+    NSArray *jsonOD = jsonIVA[@"od"];
+    if (jsonOD != nil && jsonOD.count > 0) {
+        NSDictionary *jsonItem = jsonOD[0];
+        if (jsonItem == nil) {
+            return r;
+        }
+        NSDictionary *jsonObj = jsonItem[@"obj"];
+        if (jsonObj == nil) {
+            return r;
+        }
+        NSArray *jsonRect = jsonObj[@"rect"];
+        if (jsonRect == nil) {
+            return r;
+        }
+
+        if (jsonRect.count >= 4) {
+            r.origin.x = [jsonRect[0] intValue];
+            r.origin.y = [jsonRect[1] intValue];
+            r.size.width = [jsonRect[2] intValue] - r.origin.x;
+            r.size.height = [jsonRect[3] intValue] - r.origin.y;
+        }
+    } else {
+        NSDictionary *jsonAROI = jsonIVA[@"aroi"];
+        if (jsonAROI == nil) {
+            return r;
+        }
+        NSDictionary *jsonROI = jsonAROI[@"roi"];
+        if (jsonROI == nil) {
+            return r;
+        }
+        NSArray *jsonRect = jsonROI[@"rect"];
+        if (jsonRect == nil) {
+            return r;
+        }
+
+        if (jsonRect.count >= 4) {
+            r.origin.x = [jsonRect[0] intValue];
+            r.origin.y = [jsonRect[1] intValue];
+            r.size.width = [jsonRect[2] intValue] - r.origin.x;
+            r.size.height = [jsonRect[3] intValue] - r.origin.y;
+        }
+    }
+    
+    return r;
+}
+
 - (Frame *)RGBAFrame
 {
     if (!_mediaPlayer) {
@@ -1870,15 +2120,24 @@ static int ijkff_inject_callback(void *opaque, int message, void *data, size_t d
     }
     
     uint8_t *data = nil;
+    uint8_t *meta = nil;
     int w, h;
-    ijkmp_get_frame(_mediaPlayer, &data, &w, &h);
+    ijkmp_get_frame(_mediaPlayer, &data, &w, &h, &meta);
     if (data == nil) {
         return nil;
     }
+
+    CGRect r;
+    r.size.width = r.size.height = 0;
+    if (meta != nil) {
+        r = [self parseMetaData:meta];
+    }
+
     int size = w * h * 4;
     
     NSData *nsData = [NSData dataWithBytes:data length:size];
-    Frame *frame = [[Frame alloc] initFrame: nsData withWidth:w andHeight:h];
+    Frame *frame = [[Frame alloc] initFrame: nsData withWidth:w andHeight:h andROI:r];
+
     free(data);
     return frame;
 }
@@ -1898,6 +2157,233 @@ static int ijkff_inject_callback(void *opaque, int message, void *data, size_t d
 - (int) stopVideoRecord
 {
     [self setPlayerOptionValue:@"" forKey:@"video-record-path"];
+    return 0;
+}
+
+- (int) toMp4:(NSString *)path
+{
+    [self setPlayerOptionValue:path forKey:@"video-record-path"];
+    [self setPlayerOptionIntValue:1 forKey:@"infbuf"];
+    [self setPlayerOptionIntValue:0 forKey:@"volume"];
+    return 0;
+}
+
+- (UIImage *) convertBitmapRGBA8ToUIImage:(const unsigned char *) buffer
+                                withWidth:(int) width
+                                andHeight:(int) height
+{
+    size_t bufferLength = width * height * 4;
+    CGDataProviderRef provider = CGDataProviderCreateWithData(NULL, buffer, bufferLength, NULL);
+    size_t bitsPerComponent = 8;
+    size_t bitsPerPixel = 32;
+    size_t bytesPerRow = 4 * width;
+    
+    CGColorSpaceRef colorSpaceRef = CGColorSpaceCreateDeviceRGB();
+    if(colorSpaceRef == NULL) {
+        NSLog(@"Error allocating color space");
+        CGDataProviderRelease(provider);
+        return nil;
+    }
+    
+    CGBitmapInfo bitmapInfo = kCGBitmapByteOrderDefault;
+    CGColorRenderingIntent renderingIntent = kCGRenderingIntentDefault;
+    
+    CGImageRef iref = CGImageCreate(width,
+                height,
+                bitsPerComponent,
+                bitsPerPixel,
+                bytesPerRow,
+                colorSpaceRef,
+                bitmapInfo,
+                provider,    // data provider
+                NULL,        // decode
+                YES,            // should interpolate
+                renderingIntent);
+        
+    uint32_t* pixels = (uint32_t*)malloc(bufferLength);
+    
+    if(pixels == NULL) {
+        NSLog(@"Error: Memory not allocated for bitmap");
+        CGDataProviderRelease(provider);
+        CGColorSpaceRelease(colorSpaceRef);
+        CGImageRelease(iref);
+        return nil;
+    }
+    
+    CGContextRef context = CGBitmapContextCreate(pixels,
+                 width,
+                 height,
+                 bitsPerComponent,
+                 bytesPerRow,
+                 colorSpaceRef,
+                 kCGImageAlphaPremultipliedLast);
+    
+    if(context == NULL) {
+        NSLog(@"Error context not created");
+        free(pixels);
+    }
+    
+    UIImage *image = nil;
+    if(context) {
+        CGContextDrawImage(context, CGRectMake(0.0f, 0.0f, width, height), iref);
+        CGImageRef imageRef = CGBitmapContextCreateImage(context);
+        image = [UIImage imageWithCGImage:imageRef];
+        CGImageRelease(imageRef);
+        CGContextRelease(context);
+    }
+    
+    CGColorSpaceRelease(colorSpaceRef);
+    CGImageRelease(iref);
+    CGDataProviderRelease(provider);
+    
+    if(pixels) {
+        free(pixels);
+    }
+    return image;
+}
+
+- (UIImage *)cropImage:(UIImage *)imageToCrop
+                toRect:(CGRect)rect
+{
+    CGImageRef imageRef = CGImageCreateWithImageInRect([imageToCrop CGImage], rect);
+    UIImage *cropped = [UIImage imageWithCGImage:imageRef];
+    CGImageRelease(imageRef);
+    return cropped;
+}
+
+- (int)computeStep:(int) delta
+{
+    int step = delta;
+    if (abs(delta) > MIN_DISTANCE) {
+        step = (int)(delta * TRACKING_SPEED);
+        if (step == 0) {
+            if (delta < 0) {
+                step = -1;
+            } else {
+                step = 1;
+            }
+        }
+    }
+
+    return step;
+}
+
+- (UIImage *)getSubImage:(UIImage *)image
+              withCenter:(CGPoint)center
+{
+    int w = image.size.width;
+    int h = image.size.height;
+    int cx = center.x;
+    int cy = center.y;
+    int newW = w / 2;
+    int newH = h / 2;
+    int x = cx - newW / 2;
+    int y = cy - newH / 2;
+    
+    if (x < 0) {
+        x = 0;
+    }
+    if (y < 0) {
+        y = 0;
+    }
+    
+    int delta;
+    if (x + newW >= w) {
+        delta = x + newW - w + 1;
+        x -= delta;
+    }
+    if (y + newH >= h) {
+        delta = y + newH - h + 1;
+        y -= delta;
+    }
+    
+    if (self.currentX < 0 || self.currentY < 0) {
+        self.currentX = w / 4;
+        self.currentY = h / 4;
+    }
+    
+    int deltaX = x - self.currentX;
+    int deltaY = y - self.currentY;
+    int stepX = [self computeStep:deltaX];
+    int stepY = [self computeStep:deltaY];
+
+    self.currentX += stepX;
+    self.currentY += stepY;
+
+    CGRect r;
+    r.origin.x = self.currentX;
+    r.origin.y = self.currentY;
+    r.size.width = newW;
+    r.size.height = newH;
+    return [self cropImage:image toRect:r];
+}
+
+- (UIImage *) drawRect:(UIImage *)image
+         withRect:(CGRect)rect
+{
+    UIGraphicsBeginImageContextWithOptions(image.size, NO, 0.0);
+    [image drawInRect:CGRectMake(0.0, 0.0, image.size.width, image.size.height)];
+
+    CGContextRef context = UIGraphicsGetCurrentContext();
+    if (rect.size.width > 0 && rect.size.height > 0) {
+        UIColor *strokeColor = [UIColor redColor];
+        [strokeColor set];
+        CGContextSetLineWidth(context, 10.0f);
+        CGContextAddRect(context, rect);
+        CGContextDrawPath(context, kCGPathStroke);
+    }
+    UIImage *newImage = UIGraphicsGetImageFromCurrentImageContext();
+    UIGraphicsEndImageContext();
+    return newImage;
+}
+
+- (int) draw:(Frame *)frame
+ withMainView:(UIImageView *)mainView
+   andSubView:(UIImageView *)subView
+      andMode:(Mode)mode
+{
+    if (frame == nil || mainView == nil || (mode == PIP && subView == nil)) {
+        return -1;
+    }
+    
+    if (frame.roi.size.width > 0 && frame.roi.size.height > 0) {
+        self.roi = frame.roi;
+        self.lastFoundObjectTime = [[NSDate date] timeIntervalSince1970];
+    }
+    
+    UIImage *full = [self convertBitmapRGBA8ToUIImage:frame.pixels.bytes withWidth:frame.width andHeight:frame.height];
+    
+    if (self.lastFoundObjectTime < 0 || [[NSDate date] timeIntervalSince1970] - self.lastFoundObjectTime > TRACKING_THRESHOLD_IN_SECONDS) {
+        [mainView setImage:full];
+        subView.hidden = TRUE;
+        return 0;
+    }
+
+    CGPoint center;
+    if (self.roi.size.width > 0 && self.roi.size.height > 0) {
+        center.x = self.roi.origin.x + self.roi.size.width / 2;
+        center.y = self.roi.origin.y + self.roi.size.height / 2;
+    } else {
+        center.x = frame.width / 2;
+        center.y = frame.height / 2;
+    }
+
+    UIImage *sub = [self getSubImage:full withCenter:center];
+    
+    if (mode == EPAN) {
+        [mainView setImage:sub];
+        subView.hidden = TRUE;
+    } else if (mode == PIP) {
+        [mainView setImage:sub];
+        UIImage *fullWithRect = [self drawRect:full withRect:frame.roi];
+        [subView setImage:fullWithRect];
+        subView.hidden = FALSE;
+    } else if (mode == OBJECT_DETECT) {
+        UIImage *fullWithRect = [self drawRect:full withRect:frame.roi];
+        [mainView setImage:fullWithRect];
+        subView.hidden = TRUE;
+    }
+    
     return 0;
 }
 

@@ -170,6 +170,8 @@ static const AVOption ffp_context_options[] = {
         OPTION_OFFSET(enable_aec),           OPTION_INT(0, 0, 1) },
     { "disable-multithread-delaying",                          "disable video decoder multithread delaying",
         OPTION_OFFSET(disable_multithread_delaying),           OPTION_INT(0, 0, 1) },
+    { "low-delay",                          "enable low delay mode",
+        OPTION_OFFSET(low_delay),           OPTION_INT(0, 0, 1) },
 
     // set on runtime options
     { "video-record-path",                   "video record path",

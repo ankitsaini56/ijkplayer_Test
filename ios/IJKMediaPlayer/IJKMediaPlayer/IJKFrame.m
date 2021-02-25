@@ -14,15 +14,18 @@
 @synthesize pixels = _pixels;
 @synthesize width = _width;
 @synthesize height = _height;
+@synthesize roi = _roi;
 
 - (instancetype)initFrame:(NSData *)pixels
                 withWidth:(int)w
-                andHeight:(int)h;
+                andHeight:(int)h
+                   andROI:(CGRect)roi;
 {
     self = [super init];
     _pixels = pixels;
     _width = w;
     _height = h;
+    _roi = roi;
     return self;
 }
 @end

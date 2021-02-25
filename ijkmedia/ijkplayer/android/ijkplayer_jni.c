@@ -363,6 +363,20 @@ LABEL_RETURN:
 }
 
 static jlong
+IjkMediaPlayer_getAvtechPlaybackStatus(JNIEnv *env, jobject thiz)
+{
+    jlong retval = 0;
+    IjkMediaPlayer *mp = jni_get_media_player(env, thiz);
+    JNI_CHECK_GOTO(mp, env, NULL, "mpjni: getAvtechPlaybackStatus: null mp", LABEL_RETURN);
+
+    retval = ijkmp_get_avtech_playback_status(mp);
+
+LABEL_RETURN:
+    ijkmp_dec_ref_p(&mp);
+    return retval;
+}
+
+static jlong
 IjkMediaPlayer_getDuration(JNIEnv *env, jobject thiz)
 {
     jlong retval = 0;
@@ -511,6 +525,21 @@ ijkMediaPlayer_setStreamSelected(JNIEnv *env, jobject thiz, jint stream, jboolea
 LABEL_RETURN:
     ijkmp_dec_ref_p(&mp);
     return;
+}
+
+static jfloat
+IjkMediaPlayer_getVolume(JNIEnv *env, jobject thiz)
+{
+    float vol = 1.0;
+    MPTRACE("%s\n", __func__);
+    IjkMediaPlayer *mp = jni_get_media_player(env, thiz);
+    JNI_CHECK_GOTO(mp, env, NULL, "mpjni: setVolume: null mp", LABEL_RETURN);
+
+    vol = ijkmp_android_get_volume(env, mp);
+
+LABEL_RETURN:
+    ijkmp_dec_ref_p(&mp);
+    return vol;
 }
 
 static void
@@ -1041,7 +1070,7 @@ static void message_loop_n(JNIEnv *env, IjkMediaPlayer *mp)
             post_event(env, weak_thiz, MEDIA_INFO, MEDIA_INFO_FRAME_NOT_DROPPED, 0);
             break;
         case FFP_MSG_VIDEO_RECORD_COMPLETE:
-            post_event(env, weak_thiz, MEDIA_INFO, MEDIA_INFO_VIDEO_RECORD_COMPLETE, 0);
+            post_event(env, weak_thiz, MEDIA_INFO, MEDIA_INFO_VIDEO_RECORD_COMPLETE, msg.arg1);
             break;
 
         default:
@@ -1153,17 +1182,19 @@ LABEL_RETURN:
 }
 
 static jbyteArray
-IjkMediaPlayer_getRGBAFrame(JNIEnv *env, jobject thiz, jintArray jwidth, jintArray jheight)
+IjkMediaPlayer_getRGBAFrame(JNIEnv *env, jobject thiz, jintArray jwidth, jintArray jheight, jobjectArray jmeta)
 {
     jbyteArray jframe = NULL;
     jlong retval = 0;
+    jstring jmeta_str;
     IjkMediaPlayer *mp = jni_get_media_player(env, thiz);
     JNI_CHECK_GOTO(mp, env, NULL, "mpjni: getFrame: null mp", LABEL_RETURN);
 
     uint8_t *frame;
     int w, h;
+    const char *meta_str;
 
-    retval = ijkmp_get_frame(mp, &frame, &w, &h);
+    retval = ijkmp_get_frame(mp, &frame, &w, &h, &meta_str);
 
     if (retval != 0) {
         ijkmp_dec_ref_p(&mp);
@@ -1181,6 +1212,13 @@ IjkMediaPlayer_getRGBAFrame(JNIEnv *env, jobject thiz, jintArray jwidth, jintArr
 
     width[0] = w;
     height[0] = h;
+
+    if (meta_str) {
+        jmeta_str = (*env)->NewStringUTF(env, meta_str);
+        (*env)->SetObjectArrayElement(env, jmeta, 0, jmeta_str);
+	(*env)->DeleteLocalRef(env, jmeta_str);
+    }
+
     (*env)->ReleaseByteArrayElements( env, jframe, cframe, 0 );
     (*env)->ReleaseIntArrayElements( env, jwidth, width, 0 );
     (*env)->ReleaseIntArrayElements( env, jheight, height, 0 );
@@ -1213,9 +1251,11 @@ static JNINativeMethod g_methods[] = {
     { "isPlaying",              "()Z",      (void *) IjkMediaPlayer_isPlaying },
     { "getCurrentPosition",     "()J",      (void *) IjkMediaPlayer_getCurrentPosition },
     { "getRealTime",            "()J",      (void *) IjkMediaPlayer_getRealTime },
+    { "getAvtechPlaybackStatus","()J",      (void *) IjkMediaPlayer_getAvtechPlaybackStatus },
     { "getDuration",            "()J",      (void *) IjkMediaPlayer_getDuration },
     { "_release",               "()V",      (void *) IjkMediaPlayer_release },
     { "_reset",                 "()V",      (void *) IjkMediaPlayer_reset },
+    { "getVolume",              "()F",      (void *) IjkMediaPlayer_getVolume },
     { "setVolume",              "(FF)V",    (void *) IjkMediaPlayer_setVolume },
     { "getAudioSessionId",      "()I",      (void *) IjkMediaPlayer_getAudioSessionId },
     { "native_init",            "()V",      (void *) IjkMediaPlayer_native_init },
@@ -1242,7 +1282,7 @@ static JNINativeMethod g_methods[] = {
 
     { "native_setLogLevel",     "(I)V",                     (void *) IjkMediaPlayer_native_setLogLevel },
     { "_setFrameAtTime",        "(Ljava/lang/String;JJII)V", (void *) IjkMediaPlayer_setFrameAtTime },
-    { "getRGBAFrame",           "([I[I)[B",                 (void *) IjkMediaPlayer_getRGBAFrame },
+    { "getRGBAFrame",           "([I[I[Ljava/lang/String;)[B", (void *) IjkMediaPlayer_getRGBAFrame },
 };
 
 JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved)

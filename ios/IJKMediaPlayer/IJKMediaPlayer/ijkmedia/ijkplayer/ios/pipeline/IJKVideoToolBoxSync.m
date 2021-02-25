@@ -45,6 +45,11 @@
 
 #define MAX_PKT_QUEUE_DEEP   350
 
+#define NALU_TYPE_SPS 7
+#define NALU_TYPE_PPS 8
+#define MAX_PROBE_SIZE 512
+#define NALU_START_CODE_SIZE 3
+
 typedef struct sample_info {
 
     double  sort;
@@ -99,7 +104,9 @@ struct Ijk_VideoToolBox_Opaque {
 
     int                         serial;
     bool                        dealloced;
-
+    
+    NSData *sps;
+    NSData *pps;
 };
 
 static void vtbformat_destroy(VTBFormatDesc *fmt_desc);
@@ -466,7 +473,99 @@ static VTDecompressionSessionRef vtbsession_create(Ijk_VideoToolBox_Opaque* cont
     return vt_session;
 }
 
+static int find_nalu(uint8_t *data, int size, int type, int *nalu_size)
+{
+    int i = 0;
+    int prev_i = 0;
+    int cur_i = 0;
+    while (i < size - NALU_START_CODE_SIZE) {
+        if (data[i] == 0 && data[i+1] == 0 && data[i+2] == 1) {
+            if (i > 1) {
+                prev_i = cur_i;
+                uint8_t nalu_type = data[prev_i] & 0x1f;
+                if (nalu_type == type) {
+                    *nalu_size = i - prev_i;
+                    return prev_i;
+                }
+            }
+            cur_i = i + NALU_START_CODE_SIZE;
+            i += NALU_START_CODE_SIZE;
+        }
+        i++;
+    }
+        
+    return -1;
+}
 
+static int checkSPSAndPPS(Ijk_VideoToolBox_Opaque* context, uint8_t *frame, int size) {
+    int ret = 0;
+    int sps_size;
+    int pps_size;
+    
+    int probe_size = MIN(size, MAX_PROBE_SIZE);
+    int sps_pos = find_nalu(frame, probe_size, NALU_TYPE_SPS, &sps_size);
+    int pps_pos = find_nalu(frame, probe_size, NALU_TYPE_PPS, &pps_size);
+    
+    if (sps_pos < 0 || pps_pos < 0) {
+        return ret;
+    }
+        
+    NSData *sps = [NSData dataWithBytes:&frame[sps_pos] length:sps_size];
+    NSData *pps = [NSData dataWithBytes:&frame[pps_pos] length:pps_size];
+    if (!context->sps || !context->pps) {
+        ret = 1;
+    } else if (sps.length != context->sps.length || pps.length != context->pps.length) {
+        ret = 1;
+    } else {
+        if (memcmp(sps.bytes, context->sps.bytes, sps.length) != 0 ||
+            memcmp(pps.bytes, context->pps.bytes, pps.length) != 0) {
+            ret = 1;
+        }
+    }
+    context->sps = sps;
+    context->pps = pps;
+    return ret;
+}
+
+static VTDecompressionSessionRef vtbsession_create_by_sps_and_pps(Ijk_VideoToolBox_Opaque* context)
+{
+    VTDecompressionSessionRef vt_session = NULL;
+    OSStatus status;
+
+    const uint8_t *const parameterSet[2] = {context->sps.bytes, context->pps.bytes};
+    const size_t parameterSizes[2] = {context->sps.length, context->pps.length};
+    CMVideoFormatDescriptionCreateFromH264ParameterSets(kCFAllocatorDefault, 2, parameterSet, parameterSizes, 4, &context->fmt_desc.fmt_desc);
+    CFMutableDictionaryRef destinationPixelBufferAttributes;
+    VTDecompressionOutputCallbackRecord outputCallback;
+
+    destinationPixelBufferAttributes = CFDictionaryCreateMutable(
+                                                                 NULL,
+                                                                 0,
+                                                                 &kCFTypeDictionaryKeyCallBacks,
+                                                                 &kCFTypeDictionaryValueCallBacks);
+    CFDictionarySetSInt32(destinationPixelBufferAttributes,
+                          kCVPixelBufferPixelFormatTypeKey, kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange);
+    CFDictionarySetBoolean(destinationPixelBufferAttributes,
+                          kCVPixelBufferOpenGLESCompatibilityKey, YES);
+    outputCallback.decompressionOutputCallback = VTDecoderCallback;
+    outputCallback.decompressionOutputRefCon = context;
+    status = VTDecompressionSessionCreate(
+                                          kCFAllocatorDefault,
+                                          context->fmt_desc.fmt_desc,
+                                          NULL,
+                                          destinationPixelBufferAttributes,
+                                          &outputCallback,
+                                          &vt_session);
+    if (status != noErr) {
+        NSError* error = [NSError errorWithDomain:NSOSStatusErrorDomain code:status userInfo:nil];
+        NSLog(@"Error %@", [error description]);
+        ALOGI("%s - failed with status = (%d)", __FUNCTION__, (int)status);
+    }
+
+    CFRelease(destinationPixelBufferAttributes);
+    memset(&context->sample_info, 0, sizeof(struct sample_info));
+    return vt_session;
+}
 
 static int decode_video_internal(Ijk_VideoToolBox_Opaque* context, AVCodecContext *avctx, const AVPacket *avpkt, int* got_picture_ptr)
 {
@@ -504,6 +603,21 @@ static int decode_video_internal(Ijk_VideoToolBox_Opaque* context, AVCodecContex
         if (!context->vt_session)
             goto failed;
         context->refresh_request = false;
+    } else if (context->codecpar->codec_id == AV_CODEC_ID_H264) {
+        int ret = checkSPSAndPPS(context, avpkt->data, avpkt->size);
+        if (ret != 0) {
+            while (context->m_queue_depth > 0) {
+                SortQueuePop(context);
+            }
+
+            vtbsession_destroy(context);
+            memset(&context->sample_info, 0, sizeof(struct sample_info));
+
+            context->vt_session = vtbsession_create_by_sps_and_pps(context);
+            if (!context->vt_session) {
+                goto failed;
+            }
+        }
     }
 
     if (pts == AV_NOPTS_VALUE) {
@@ -822,6 +936,9 @@ void videotoolbox_sync_free(Ijk_VideoToolBox_Opaque* context)
     vtbformat_destroy(&context->fmt_desc);
 
     avcodec_parameters_free(&context->codecpar);
+    
+    context->sps = NULL;
+    context->pps = NULL;
 }
 
 int videotoolbox_sync_decode_frame(Ijk_VideoToolBox_Opaque* context)

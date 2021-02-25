@@ -143,6 +143,11 @@ public class MediaPlayerProxy implements IMediaPlayer {
     }
 
     @Override
+    public long getAvtechPlaybackStatus() {
+        return mBackEndMediaPlayer.getAvtechPlaybackStatus();
+    }
+
+    @Override
     public long getDuration() {
         return mBackEndMediaPlayer.getDuration();
     }

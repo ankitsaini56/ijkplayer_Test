@@ -68,6 +68,7 @@ int       ffp_wait_stop_l(FFPlayer *ffp);
 int       ffp_seek_to_l(FFPlayer *ffp, uint64_t msec);
 long      ffp_get_current_position_l(FFPlayer *ffp);
 uint32_t  ffp_get_real_time_l(FFPlayer *ffp);
+uint32_t  ffp_get_avtech_playback_status_l(FFPlayer *ffp);
 long      ffp_get_duration_l(FFPlayer *ffp);
 long      ffp_get_playable_duration_l(FFPlayer *ffp);
 void      ffp_set_loop(FFPlayer *ffp, int loop);
@@ -119,6 +120,6 @@ void      ffp_set_property_int64(FFPlayer *ffp, int id, int64_t value);
 // must be freed with free();
 struct IjkMediaMeta *ffp_get_meta_l(FFPlayer *ffp);
 
-long ffp_get_frame_l(FFPlayer *ffp, uint8_t **data, int *width, int *height);
+long ffp_get_frame_l(FFPlayer *ffp, uint8_t **data, int *width, int *height, unsigned char **meta);
 
 #endif

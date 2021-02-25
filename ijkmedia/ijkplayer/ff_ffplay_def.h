@@ -228,6 +228,7 @@ typedef struct Frame {
     AVRational sar;
     int uploaded;
     uint32_t avtech_timestamp;
+    uint32_t avtech_playback_status;
 } Frame;
 
 typedef struct FrameQueue {
@@ -272,6 +273,18 @@ typedef struct Decoder {
     Uint64 first_frame_decoded_time;
     int    first_frame_decoded;
 } Decoder;
+
+typedef struct MetaData {
+    unsigned char *meta;
+    int64_t pts;
+} MetaData;
+
+typedef struct MetaDataQueue {
+    SDL_mutex *mutex;
+    MetaData **data;
+    int size;
+    int last;
+} MetaDataQueue;
 
 typedef struct VideoState {
     SDL_Thread *read_tid;
@@ -428,6 +441,9 @@ typedef struct VideoState {
     SDL_mutex *frame_mutex;
     uint32_t avtech_timestamp;
     uint32_t avtech_start_timestamp;
+    uint32_t avtech_playback_status;
+    MetaDataQueue metaq;
+    MetaData *meta;
 } VideoState;
 
 /* options specified by the user */
@@ -526,6 +542,7 @@ typedef struct FFStatistic
     int drop_frame_count;
     int decode_frame_count;
     float drop_frame_rate;
+    int64_t video_frame_timestamp;
 } FFStatistic;
 
 #define FFP_TCP_READ_SAMPLE_RANGE 2000
@@ -737,6 +754,9 @@ typedef struct FFPlayer {
     bool frame_dropped;
     int enable_aec;
     int disable_multithread_delaying;
+    int video_seeking;
+    int low_delay;
+    int high_speed_playback;
 } FFPlayer;
 
 #define fftime_to_milliseconds(ts) (av_rescale(ts, 1000, AV_TIME_BASE))

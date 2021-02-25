@@ -73,20 +73,35 @@ do_ndk_build () {
     PARAM_TARGET=$1
     PARAM_SUB_CMD=$2
     case "$PARAM_TARGET" in
-        armv5|armv7a)
+        armv7a)
             cd "ijkplayer/ijkplayer-$PARAM_TARGET/src/main/jni"
             do_sub_cmd $PARAM_SUB_CMD
             cd -
             cp -a "ijkplayer/ijkplayer-$PARAM_TARGET/src/main/libs" "ijkplayer/ijkplayer-java/src/main/"
+            mkdir -p "ffmpeg-libs/lib/armeabi-v7a"
+            mv "ijkplayer/ijkplayer-java/src/main/libs/armeabi-v7a/libijkffmpeg.so" "ffmpeg-libs/lib/armeabi-v7a/libijkffmpeg.so"
         ;;
-        arm64|x86|x86_64)
+        arm64)
             cd "ijkplayer/ijkplayer-$PARAM_TARGET/src/main/jni"
             if [ "$PARAM_SUB_CMD" = 'prof' ]; then PARAM_SUB_CMD=''; fi
             do_sub_cmd $PARAM_SUB_CMD
             cd -
             cp -a "ijkplayer/ijkplayer-$PARAM_TARGET/src/main/libs" "ijkplayer/ijkplayer-java/src/main/"
+            mkdir -p "ffmpeg-libs/lib/arm64-v8a"
+            mv "ijkplayer/ijkplayer-java/src/main/libs/arm64-v8a/libijkffmpeg.so" "ffmpeg-libs/lib/arm64-v8a/libijkffmpeg.so"
+        ;;
+        x86|x86_64)
+            cd "ijkplayer/ijkplayer-$PARAM_TARGET/src/main/jni"
+            if [ "$PARAM_SUB_CMD" = 'prof' ]; then PARAM_SUB_CMD=''; fi
+            do_sub_cmd $PARAM_SUB_CMD
+            cd -
+            cp -a "ijkplayer/ijkplayer-$PARAM_TARGET/src/main/libs" "ijkplayer/ijkplayer-java/src/main/"
+            mkdir -p "ffmpeg-libs/lib/$PARAM_TARGET"
+            mv "ijkplayer/ijkplayer-java/src/main/libs/$PARAM_TARGET/libijkffmpeg.so" "ffmpeg-libs/lib/$PARAM_TARGET/libijkffmpeg.so"
         ;;
     esac
+
+    cp -a contrib/build/ffmpeg-$PARAM_TARGET/output/include "ffmpeg-libs/"
 }
 
 
@@ -124,3 +139,4 @@ case "$REQUEST_TARGET" in
     ;;
 esac
 
+cp -a ffmpeg-libs/lib/* "ijkplayer/ijkplayer-example/src/main/jniLibs/"

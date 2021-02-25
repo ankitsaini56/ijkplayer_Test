@@ -643,6 +643,21 @@ uint32_t ijkmp_get_real_time(IjkMediaPlayer *mp)
     return retval;
 }
 
+static uint32_t ijkmp_get_avtech_playback_status_l(IjkMediaPlayer *mp)
+{
+    return ffp_get_avtech_playback_status_l(mp->ffplayer);
+}
+
+uint32_t ijkmp_get_avtech_playback_status(IjkMediaPlayer *mp)
+{
+    assert(mp);
+    pthread_mutex_lock(&mp->mutex);
+    long retval;
+    retval = ijkmp_get_avtech_playback_status_l(mp);
+    pthread_mutex_unlock(&mp->mutex);
+    return retval;
+}
+
 static long ijkmp_get_duration_l(IjkMediaPlayer *mp)
 {
     return ffp_get_duration_l(mp->ffplayer);
@@ -814,7 +829,7 @@ int ijkmp_get_msg(IjkMediaPlayer *mp, AVMessage *msg, int block)
     return -1;
 }
 
-static long ijkmp_get_frame_l(IjkMediaPlayer *mp, uint8_t **data, int *w, int *h)
+static long ijkmp_get_frame_l(IjkMediaPlayer *mp, uint8_t **data, int *w, int *h, unsigned char **meta)
 {
     MPST_RET_IF_EQ(mp->mp_state, MP_STATE_IDLE);
     MPST_RET_IF_EQ(mp->mp_state, MP_STATE_INITIALIZED);
@@ -822,14 +837,14 @@ static long ijkmp_get_frame_l(IjkMediaPlayer *mp, uint8_t **data, int *w, int *h
     MPST_RET_IF_EQ(mp->mp_state, MP_STATE_STOPPED);
     MPST_RET_IF_EQ(mp->mp_state, MP_STATE_ERROR);
     MPST_RET_IF_EQ(mp->mp_state, MP_STATE_END);
-    return ffp_get_frame_l(mp->ffplayer, data, w, h);
+    return ffp_get_frame_l(mp->ffplayer, data, w, h, meta);
 }
 
-long ijkmp_get_frame(IjkMediaPlayer *mp, uint8_t **data, int *w, int *h)
+long ijkmp_get_frame(IjkMediaPlayer *mp, uint8_t **data, int *w, int *h, unsigned char **meta)
 {
     assert(mp);
     pthread_mutex_lock(&mp->mutex);
-    long retval = ijkmp_get_frame_l(mp, data, w, h);
+    long retval = ijkmp_get_frame_l(mp, data, w, h, meta);
     pthread_mutex_unlock(&mp->mutex);
     return retval;
 }

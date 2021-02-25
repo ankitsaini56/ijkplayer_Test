@@ -242,6 +242,11 @@ public class AndroidMediaPlayer extends AbstractMediaPlayer {
     }
 
     @Override
+    public long getAvtechPlaybackStatus() {
+        return 0;
+    }
+
+    @Override
     public long getDuration() {
         try {
             return mInternalMediaPlayer.getDuration();

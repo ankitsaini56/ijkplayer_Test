@@ -13,11 +13,45 @@
         android:layout_height="match_parent"
         android:background="#0099cc">
 
-        <tv.danmaku.ijk.media.player.widget.media.IjkVideoView
-            android:id="@+id/video_view"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_gravity="center"></tv.danmaku.ijk.media.player.widget.media.IjkVideoView>
+            android:orientation="vertical"
+            >
+
+            <tv.danmaku.ijk.media.player.widget.media.IjkVideoView
+                android:id="@+id/video_view"
+                android:layout_width="match_parent"
+                android:layout_height="300dp"
+                android:layout_gravity="center"></tv.danmaku.ijk.media.player.widget.media.IjkVideoView>
+
+            <tv.danmaku.ijk.media.player.widget.media.IjkVideoView
+                android:id="@+id/video_view2"
+                android:layout_width="match_parent"
+                android:layout_height="300dp"
+                android:layout_gravity="center"></tv.danmaku.ijk.media.player.widget.media.IjkVideoView>
+
+        </LinearLayout>
+
+        <RelativeLayout
+            android:layout_gravity="center"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <tv.danmaku.ijk.media.player.widget.media.IjkTextureView
+                android:id="@+id/texture_video"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:visibility="gone" />
+
+            <tv.danmaku.ijk.media.player.widget.media.IjkTextureView
+                android:layout_centerVertical="true"
+                android:id="@+id/texture_subvideo"
+                android:layout_width="150dp"
+                android:layout_height="150dp"
+                android:visibility="gone" />
+
+        </RelativeLayout>
 
         <TextView
             android:id="@+id/toast_text_view"

@@ -75,6 +75,24 @@ void ijkmp_android_set_surface(JNIEnv *env, IjkMediaPlayer *mp, jobject android_
     MPTRACE("ijkmp_set_android_surface(surface=%p)=void", (void*)android_surface);
 }
 
+float ijkmp_android_get_volume(JNIEnv *env, IjkMediaPlayer *mp)
+{
+    float vol = 1.0;
+    if (!mp)
+        return vol;
+
+    MPTRACE("ijkmp_android_get_volume()");
+    pthread_mutex_lock(&mp->mutex);
+
+    if (mp && mp->ffplayer && mp->ffplayer->pipeline) {
+        vol = ffpipeline_get_volume(mp->ffplayer->pipeline);
+    }
+
+    pthread_mutex_unlock(&mp->mutex);
+    MPTRACE("ijkmp_android_get_volume()=%f", vol);
+    return vol;
+}
+
 void ijkmp_android_set_volume(JNIEnv *env, IjkMediaPlayer *mp, float left, float right)
 {
     if (!mp)
