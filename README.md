@@ -225,6 +225,11 @@ git checkout -B latest k0.8.8
 # 
 ```
 
+### Examples
+```
+Android: android/ijkplayer/ijkplayer-example/src/main/java/tv/danmaku/ijk/media/example/activities/VideoActivity.java
+iOS: ios/IJKMediaDemo/IJKMediaDemo/IJKMoviePlayerViewController.m
+```
 
 ### Support (支持) ###
 - Please do not send e-mail to me. Public technical discussion on github is preferred.
