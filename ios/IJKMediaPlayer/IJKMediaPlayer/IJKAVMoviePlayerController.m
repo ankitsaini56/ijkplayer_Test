@@ -179,7 +179,7 @@ static IJKAVMoviePlayerController* instance;
         self.view = _avView;
 
         // TODO:
-        [[IJKAudioKit sharedInstance] setupAudioSession];
+        [[IJKAudioKit sharedInstance] setupAudioSession:NO];
 
         _isPrerolling           = NO;
 

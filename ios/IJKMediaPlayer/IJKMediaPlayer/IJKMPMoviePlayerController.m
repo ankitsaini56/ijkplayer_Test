@@ -57,7 +57,7 @@
         _notificationManager = [[IJKNotificationManager alloc] init];
         [self IJK_installMovieNotificationObservers];
 
-        [[IJKAudioKit sharedInstance] setupAudioSession];
+        [[IJKAudioKit sharedInstance] setupAudioSession:NO];
         
         _bufferingProgress = -1;
     }

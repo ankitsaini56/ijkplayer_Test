@@ -39,7 +39,7 @@
     return sAudioKit;
 }
 
-- (void)setupAudioSession
+- (void)setupAudioSession:(BOOL)usePlaybackAndRecordMode
 {
     if (!_audioSessionInitialized) {
         [[NSNotificationCenter defaultCenter] addObserver: self
@@ -51,9 +51,18 @@
 
     /* Set audio session to mediaplayback */
     NSError *error = nil;
-    if (NO == [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryPlayback error:&error]) {
-        NSLog(@"IJKAudioKit: AVAudioSession.setCategory() failed: %@\n", error ? [error localizedDescription] : @"nil");
-        return;
+    if (usePlaybackAndRecordMode) {
+        if (NO == [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryPlayAndRecord  withOptions: AVAudioSessionCategoryOptionDuckOthers|
+                   AVAudioSessionCategoryOptionAllowBluetooth |
+                   AVAudioSessionCategoryOptionDefaultToSpeaker error:&error]) {
+            NSLog(@"IJKAudioKit: AVAudioSession.setCategory() failed: %@\n", error ? [error localizedDescription] : @"nil");
+            return;
+        }
+    } else {
+        if (NO == [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryPlayback error:&error]) {
+            NSLog(@"IJKAudioKit: AVAudioSession.setCategory() failed: %@\n", error ? [error localizedDescription] : @"nil");
+            return;
+        }
     }
 
     error = nil;

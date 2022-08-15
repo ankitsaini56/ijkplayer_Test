@@ -119,10 +119,13 @@ NS_ASSUME_NONNULL_BEGIN
  */
 - (void)storeUseManualAudioConfigSetting:(BOOL)useManualAudioConfig;
 
-@property(nonatomic, readwrite, nonnull) NSString *udid;
-@property (nonatomic, readwrite, nonnull) NSString *credential;
-@property (nonatomic, readwrite, nonnull) NSString *amToken;
+@property (nonatomic, readwrite, nonnull) NSString *dmToken;
 @property (nonatomic, readwrite, nonnull) NSString *realm;
+@property (nonatomic, readwrite) int channelId;
+@property (nonatomic, readwrite, nonnull) NSString *streamType;
+@property (nonatomic, readwrite) int playbackStartTime;
+@property (nonatomic, readwrite, nullable) NSString *playbackFileName;
+@property (nonatomic, readwrite) bool isQuickConnect;
 @property (nonatomic, readwrite, nullable) NSDictionary *info;
 @end
 NS_ASSUME_NONNULL_END

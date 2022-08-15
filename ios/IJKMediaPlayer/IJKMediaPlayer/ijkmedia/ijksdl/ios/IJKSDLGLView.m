@@ -37,6 +37,7 @@ typedef NS_ENUM(NSInteger, IJKSDLGLViewApplicationState) {
 @interface IJKSDLGLView()
 @property(atomic,strong) NSRecursiveLock *glActiveLock;
 @property(atomic) BOOL glActivePaused;
+@property(atomic) BOOL stopped;
 @end
 
 @implementation IJKSDLGLView {
@@ -87,6 +88,7 @@ typedef NS_ENUM(NSInteger, IJKSDLGLViewApplicationState) {
         _didSetupGL = NO;
         if ([self isApplicationActive] == YES)
             [self setupGLOnce];
+        self.stopped = NO;
     }
 
     return self;
@@ -334,7 +336,15 @@ typedef NS_ENUM(NSInteger, IJKSDLGLViewApplicationState) {
 
 - (void)display: (SDL_VoutOverlay *) overlay
 {
-    dispatch_async(dispatch_get_main_queue(), ^{
+    if (self.stopped == YES) {
+        return;
+    }
+
+    [[NSOperationQueue mainQueue] addOperationWithBlock:^{
+        if (self.stopped == YES) {
+            return;
+        }
+
         if (_didSetupGL == NO)
             return;
 
@@ -358,7 +368,7 @@ typedef NS_ENUM(NSInteger, IJKSDLGLViewApplicationState) {
         }
 
         [self unlockGLActive];
-    });
+    }];
 }
 
 // NOTE: overlay could be NULl
@@ -391,9 +401,10 @@ typedef NS_ENUM(NSInteger, IJKSDLGLViewApplicationState) {
 
     if (!IJK_GLES2_Renderer_renderOverlay(_renderer, overlay))
         ALOGE("[EGL] IJK_GLES2_render failed\n");
-
-    glBindRenderbuffer(GL_RENDERBUFFER, _renderbuffer);
-    [_context presentRenderbuffer:GL_RENDERBUFFER];
+    else {
+        glBindRenderbuffer(GL_RENDERBUFFER, _renderbuffer);
+        [_context presentRenderbuffer:GL_RENDERBUFFER];
+    }
 
     int64_t current = (int64_t)SDL_GetTickHR();
     int64_t delta   = (current > _lastFrameTime) ? current - _lastFrameTime : 0;
@@ -636,5 +647,11 @@ typedef NS_ENUM(NSInteger, IJKSDLGLViewApplicationState) {
 - (void)setShouldLockWhileBeingMovedToWindow:(BOOL)shouldLockWhileBeingMovedToWindow
 {
     _shouldLockWhileBeingMovedToWindow = shouldLockWhileBeingMovedToWindow;
+}
+
+- (void)stop
+{
+    self.stopped = YES;
+    [[NSOperationQueue mainQueue] cancelAllOperations];
 }
 @end

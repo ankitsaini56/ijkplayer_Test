@@ -24,9 +24,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @implementation ARDSettingsModel
 
-@synthesize udid;
-@synthesize credential;
-@synthesize amToken;
+@synthesize dmToken;
 @synthesize realm;
 @synthesize info;
 

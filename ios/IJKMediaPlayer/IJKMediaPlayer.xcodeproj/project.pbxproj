@@ -9,7 +9,6 @@
 /* Begin PBXBuildFile section */
 		4D32BC811F906E3A00CE9F03 /* IJKSDLGLViewProtocol.h in Headers */ = {isa = PBXBuildFile; fileRef = 4D32BC801F906E3600CE9F03 /* IJKSDLGLViewProtocol.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		4D32BC821F906E3B00CE9F03 /* IJKSDLGLViewProtocol.h in Headers */ = {isa = PBXBuildFile; fileRef = 4D32BC801F906E3600CE9F03 /* IJKSDLGLViewProtocol.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		4DA7F6891F2B1E270032A499 /* ijkiourlhook.c in Sources */ = {isa = PBXBuildFile; fileRef = 4DA7F6881F2B1E270032A499 /* ijkiourlhook.c */; };
 		4DA7F68A1F2B1E270032A499 /* ijkiourlhook.c in Sources */ = {isa = PBXBuildFile; fileRef = 4DA7F6881F2B1E270032A499 /* ijkiourlhook.c */; };
 		5407EC291DF7F93B00457BFE /* IJKVideoToolBox.h in Headers */ = {isa = PBXBuildFile; fileRef = 5407EC271DF7F93B00457BFE /* IJKVideoToolBox.h */; };
 		5407EC2A1DF7F93B00457BFE /* IJKVideoToolBox.m in Sources */ = {isa = PBXBuildFile; fileRef = 5407EC281DF7F93B00457BFE /* IJKVideoToolBox.m */; };
@@ -139,21 +138,6 @@
 		5450B0461E63EAB700568494 /* libssl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5450AF8C1E63E59300568494 /* libssl.a */; };
 		5450B0471E63EABC00568494 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 5450AF8F1E63E59800568494 /* libz.tbd */; };
 		549385C41E640456001AE08D /* IJKMediaFrameworkWithSSL.h in Headers */ = {isa = PBXBuildFile; fileRef = 5450AF9B1E63E65700568494 /* IJKMediaFrameworkWithSSL.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		54A029B61D4700E6001C61C1 /* ijkasync.c in Sources */ = {isa = PBXBuildFile; fileRef = 54A029B11D4700E6001C61C1 /* ijkasync.c */; };
-		54A029B71D4700E6001C61C1 /* ijkavformat.h in Headers */ = {isa = PBXBuildFile; fileRef = 54A029B21D4700E6001C61C1 /* ijkavformat.h */; };
-		54A029B81D4700E6001C61C1 /* ijklongurl.c in Sources */ = {isa = PBXBuildFile; fileRef = 54A029B31D4700E6001C61C1 /* ijklongurl.c */; };
-		54A029B91D4700E6001C61C1 /* ijksegment.c in Sources */ = {isa = PBXBuildFile; fileRef = 54A029B41D4700E6001C61C1 /* ijksegment.c */; };
-		54A029BA1D4700E6001C61C1 /* ijkurlhook.c in Sources */ = {isa = PBXBuildFile; fileRef = 54A029B51D4700E6001C61C1 /* ijkurlhook.c */; };
-		54CF8A331E1526F800309DD5 /* ijkio.c in Sources */ = {isa = PBXBuildFile; fileRef = 54CF8A291E1526F800309DD5 /* ijkio.c */; };
-		54CF8A341E1526F800309DD5 /* ijkioapplication.c in Sources */ = {isa = PBXBuildFile; fileRef = 54CF8A2A1E1526F800309DD5 /* ijkioapplication.c */; };
-		54CF8A351E1526F800309DD5 /* ijkioapplication.h in Headers */ = {isa = PBXBuildFile; fileRef = 54CF8A2B1E1526F800309DD5 /* ijkioapplication.h */; };
-		54CF8A361E1526F800309DD5 /* ijkiocache.c in Sources */ = {isa = PBXBuildFile; fileRef = 54CF8A2C1E1526F800309DD5 /* ijkiocache.c */; };
-		54CF8A371E1526F800309DD5 /* ijkioffio.c in Sources */ = {isa = PBXBuildFile; fileRef = 54CF8A2D1E1526F800309DD5 /* ijkioffio.c */; };
-		54CF8A381E1526F800309DD5 /* ijkiomanager.c in Sources */ = {isa = PBXBuildFile; fileRef = 54CF8A2E1E1526F800309DD5 /* ijkiomanager.c */; };
-		54CF8A391E1526F800309DD5 /* ijkiomanager.h in Headers */ = {isa = PBXBuildFile; fileRef = 54CF8A2F1E1526F800309DD5 /* ijkiomanager.h */; };
-		54CF8A3A1E1526F800309DD5 /* ijkioprotocol.c in Sources */ = {isa = PBXBuildFile; fileRef = 54CF8A301E1526F800309DD5 /* ijkioprotocol.c */; };
-		54CF8A3B1E1526F800309DD5 /* ijkioprotocol.h in Headers */ = {isa = PBXBuildFile; fileRef = 54CF8A311E1526F800309DD5 /* ijkioprotocol.h */; };
-		54CF8A3C1E1526F800309DD5 /* ijkiourl.h in Headers */ = {isa = PBXBuildFile; fileRef = 54CF8A321E1526F800309DD5 /* ijkiourl.h */; };
 		54CF8A491E15287D00309DD5 /* ijkdict.c in Sources */ = {isa = PBXBuildFile; fileRef = 54CF8A3D1E15287D00309DD5 /* ijkdict.c */; settings = {COMPILER_FLAGS = "-w"; }; };
 		54CF8A4A1E15287D00309DD5 /* ijkdict.h in Headers */ = {isa = PBXBuildFile; fileRef = 54CF8A3E1E15287D00309DD5 /* ijkdict.h */; };
 		54CF8A4B1E15287D00309DD5 /* ijkfifo.c in Sources */ = {isa = PBXBuildFile; fileRef = 54CF8A3F1E15287D00309DD5 /* ijkfifo.c */; settings = {COMPILER_FLAGS = "-w"; }; };
@@ -311,9 +295,7 @@
 		E698089C1C7EB13A0048A46C /* NSString+IJKMedia.m in Sources */ = {isa = PBXBuildFile; fileRef = E698089A1C7EB13A0048A46C /* NSString+IJKMedia.m */; };
 		E69808A01C7EB2040048A46C /* IJKNotificationManager.h in Headers */ = {isa = PBXBuildFile; fileRef = E698089E1C7EB2040048A46C /* IJKNotificationManager.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		E69808A11C7EB2040048A46C /* IJKNotificationManager.m in Sources */ = {isa = PBXBuildFile; fileRef = E698089F1C7EB2040048A46C /* IJKNotificationManager.m */; };
-		E69BE5511B93FED300AFBA3F /* allformats.c in Sources */ = {isa = PBXBuildFile; fileRef = E69BE54A1B93FED300AFBA3F /* allformats.c */; };
 		E69BE5571B93FED300AFBA3F /* opt.h in Headers */ = {isa = PBXBuildFile; fileRef = E69BE54F1B93FED300AFBA3F /* opt.h */; };
-		E69BE5721B946FF600AFBA3F /* ijklivehook.c in Sources */ = {isa = PBXBuildFile; fileRef = E69BE5701B946FF600AFBA3F /* ijklivehook.c */; };
 		E6C2E7BE1C92BD3600E59229 /* IJKKVOController.h in Headers */ = {isa = PBXBuildFile; fileRef = E65DC3B719D93D5F004F8A08 /* IJKKVOController.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		E6C459841C7030AA004831EC /* ijksdl_gles2.h in Headers */ = {isa = PBXBuildFile; fileRef = E6C459831C7030AA004831EC /* ijksdl_gles2.h */; };
 		E6C459921C7030B6004831EC /* color.c in Sources */ = {isa = PBXBuildFile; fileRef = E6C459861C7030B6004831EC /* color.c */; };
@@ -1303,7 +1285,6 @@
 				C309789424D2D787005E8CA1 /* ARDAppEngineClient.h in Headers */,
 				C309786124D2D787005E8CA1 /* RTCVideoCodecInfo+HumanReadable.h in Headers */,
 				C309783A24D2D787005E8CA1 /* ARDMessageResponse+Internal.h in Headers */,
-				54CF8A3C1E1526F800309DD5 /* ijkiourl.h in Headers */,
 				E654EAEA1B6B295200B0F2D0 /* IJKFFMoviePlayerController.h in Headers */,
 				E68B7AC51C1E7F20001DE241 /* IJKSDLHudViewController.h in Headers */,
 				E654EAEC1B6B295200B0F2D0 /* IJKFFOptions.h in Headers */,
@@ -1332,7 +1313,6 @@
 				C309784524D2D787005E8CA1 /* ARDBitrateTracker.h in Headers */,
 				C309787924D2D787005E8CA1 /* RTCIceCandidate+JSON.h in Headers */,
 				54CF8A501E15287D00309DD5 /* ijkthreadpool.h in Headers */,
-				54CF8A391E1526F800309DD5 /* ijkiomanager.h in Headers */,
 				54CF8A4E1E15287D00309DD5 /* ijkstl.h in Headers */,
 				4D32BC811F906E3A00CE9F03 /* IJKSDLGLViewProtocol.h in Headers */,
 				E654EAE61B6B295200B0F2D0 /* IJKMediaModule.h in Headers */,
@@ -1344,8 +1324,6 @@
 				C309783E24D2D787005E8CA1 /* ARDWebSocketChannel.h in Headers */,
 				C309784F24D2D787005E8CA1 /* ARDFileCaptureController.h in Headers */,
 				E69BE5571B93FED300AFBA3F /* opt.h in Headers */,
-				54CF8A351E1526F800309DD5 /* ijkioapplication.h in Headers */,
-				54CF8A3B1E1526F800309DD5 /* ijkioprotocol.h in Headers */,
 				C309785024D2D787005E8CA1 /* ARDMainViewController.h in Headers */,
 				C309788724D2D787005E8CA1 /* ARDTURNClient+Internal.h in Headers */,
 				E654EAE71B6B295200B0F2D0 /* IJKMediaPlayback.h in Headers */,
@@ -1360,7 +1338,6 @@
 				C309783D24D2D787005E8CA1 /* ARDSettingsModel.h in Headers */,
 				E654EAE91B6B295200B0F2D0 /* IJKMPMoviePlayerController.h in Headers */,
 				C309787C24D2D787005E8CA1 /* ARDUtilities.h in Headers */,
-				54A029B71D4700E6001C61C1 /* ijkavformat.h in Headers */,
 				C309786F24D2D787005E8CA1 /* ARDMainView.h in Headers */,
 				E68B7ACF1C1E97B0001DE241 /* IJKSDLHudViewCell.h in Headers */,
 				5407EC291DF7F93B00457BFE /* IJKVideoToolBox.h in Headers */,
@@ -1641,7 +1618,6 @@
 				E654EAC71B6B287E00B0F2D0 /* ijksdl_vout.c in Sources */,
 				C309789024D2D787005E8CA1 /* ARDExternalSampleCapturer.m in Sources */,
 				E6C459951C7030B6004831EC /* yuv444p10le.fsh.c in Sources */,
-				E69BE5511B93FED300AFBA3F /* allformats.c in Sources */,
 				E654EABB1B6B286B00B0F2D0 /* ffpipenode_ffplay_vdec.c in Sources */,
 				C309788824D2D787005E8CA1 /* ARDSettingsModel.m in Sources */,
 				E6C459981C7030B6004831EC /* renderer_yuv420p.c in Sources */,
@@ -1650,7 +1626,6 @@
 				E654EAAC1B6B284C00B0F2D0 /* IJKFFMoviePlayerDef.m in Sources */,
 				E654EAB91B6B286700B0F2D0 /* ijkplayer_ios.m in Sources */,
 				E654EAB51B6B286400B0F2D0 /* ffpipeline_ios.c in Sources */,
-				54CF8A3A1E1526F800309DD5 /* ijkioprotocol.c in Sources */,
 				C309786224D2D787005E8CA1 /* ARDAppDelegate.m in Sources */,
 				E654EABD1B6B287000B0F2D0 /* ijksdl_vout_dummy.c in Sources */,
 				E6C459CC1C70967F004831EC /* renderer_yuv420sp.c in Sources */,
@@ -1658,11 +1633,9 @@
 				E654EAC21B6B287E00B0F2D0 /* ijksdl_error.c in Sources */,
 				C309784B24D2D787005E8CA1 /* RTCIceServer+JSON.m in Sources */,
 				E607FFE11B7B62E3005F11A6 /* IJKDeviceModel.m in Sources */,
-				54CF8A361E1526F800309DD5 /* ijkiocache.c in Sources */,
 				C309786E24D2D787005E8CA1 /* ARDVideoCallView.m in Sources */,
 				E6C459BA1C706A13004831EC /* ijksdl_egl.c in Sources */,
 				C32A4E792318CBCE0098523A /* IJKFrame.m in Sources */,
-				54CF8A331E1526F800309DD5 /* ijkio.c in Sources */,
 				E654EAA31B6B283700B0F2D0 /* IJKAudioKit.m in Sources */,
 				C309789224D2D787005E8CA1 /* ARDAppClient.m in Sources */,
 				E654EAAA1B6B284300B0F2D0 /* IJKMPMoviePlayerController.m in Sources */,
@@ -1672,13 +1645,10 @@
 				E654EAB11B6B285900B0F2D0 /* ff_ffpipenode.c in Sources */,
 				E654EAC41B6B287E00B0F2D0 /* ijksdl_stdinc.c in Sources */,
 				5407EC2A1DF7F93B00457BFE /* IJKVideoToolBox.m in Sources */,
-				54A029B91D4700E6001C61C1 /* ijksegment.c in Sources */,
 				E654EAA61B6B283700B0F2D0 /* IJKMediaUtils.m in Sources */,
 				E6C459931C7030B6004831EC /* common.c in Sources */,
 				C309784D24D2D787005E8CA1 /* UIImage+ARDUtilities.m in Sources */,
 				E654EAC81B6B288A00B0F2D0 /* ijksdl_aout_ios_audiounit.m in Sources */,
-				E69BE5721B946FF600AFBA3F /* ijklivehook.c in Sources */,
-				54A029BA1D4700E6001C61C1 /* ijkurlhook.c in Sources */,
 				5407EC2E1DF81D2600457BFE /* IJKVideoToolBoxSync.m in Sources */,
 				C309789724D2D787005E8CA1 /* ARDBitrateTracker.m in Sources */,
 				E654EAA51B6B283700B0F2D0 /* IJKMediaPlayback.m in Sources */,
@@ -1686,7 +1656,6 @@
 				E654EAB01B6B285900B0F2D0 /* ff_ffpipeline.c in Sources */,
 				C309786524D2D787005E8CA1 /* ARDMainView.m in Sources */,
 				C309786724D2D787005E8CA1 /* ARDStatsView.m in Sources */,
-				4DA7F6891F2B1E270032A499 /* ijkiourlhook.c in Sources */,
 				E654EACC1B6B288A00B0F2D0 /* IJKSDLAudioKit.m in Sources */,
 				E6C4599B1C7030B6004831EC /* mvp.vsh.c in Sources */,
 				E698089C1C7EB13A0048A46C /* NSString+IJKMedia.m in Sources */,
@@ -1705,7 +1674,6 @@
 				E654EAC91B6B288A00B0F2D0 /* ijksdl_thread_ios.m in Sources */,
 				C309786B24D2D787005E8CA1 /* ARDMainViewController.m in Sources */,
 				E654EAB31B6B285900B0F2D0 /* ijkmeta.c in Sources */,
-				54A029B61D4700E6001C61C1 /* ijkasync.c in Sources */,
 				C309787824D2D787005E8CA1 /* RTCVideoCodecInfo+HumanReadable.m in Sources */,
 				E6E1B9A81C741F72000C6C72 /* renderer_yuv420sp_vtb.m in Sources */,
 				54CF8A531E15287D00309DD5 /* ijkutils.c in Sources */,
@@ -1718,11 +1686,8 @@
 				C309784924D2D787005E8CA1 /* ARDAppEngineClient.m in Sources */,
 				54CF8A4B1E15287D00309DD5 /* ijkfifo.c in Sources */,
 				E6C4599A1C7030B6004831EC /* shader.c in Sources */,
-				54CF8A371E1526F800309DD5 /* ijkioffio.c in Sources */,
 				E6C459971C7030B6004831EC /* renderer.c in Sources */,
 				C309787624D2D787005E8CA1 /* ARDBroadcastSampleHandler.m in Sources */,
-				54CF8A341E1526F800309DD5 /* ijkioapplication.c in Sources */,
-				54CF8A381E1526F800309DD5 /* ijkiomanager.c in Sources */,
 				E654EAB41B6B285900B0F2D0 /* ijkplayer.c in Sources */,
 				E654EAAE1B6B284C00B0F2D0 /* IJKFFOptions.m in Sources */,
 				E654EACE1B6B288A00B0F2D0 /* IJKSDLAudioUnitController.m in Sources */,
@@ -1749,7 +1714,6 @@
 				C309788624D2D787005E8CA1 /* ARDWebSocketChannel.m in Sources */,
 				E654EACA1B6B288A00B0F2D0 /* ijksdl_vout_ios_gles2.m in Sources */,
 				C309786A24D2D787005E8CA1 /* ARDFileCaptureController.m in Sources */,
-				54A029B81D4700E6001C61C1 /* ijklongurl.c in Sources */,
 				E6C459C01C708CAF004831EC /* renderer_rgb.c in Sources */,
 				C309788124D2D787005E8CA1 /* ARDJoinResponse.m in Sources */,
 				E654EABA1B6B286B00B0F2D0 /* ffpipeline_ffplay.c in Sources */,
@@ -1895,6 +1859,7 @@
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				ENABLE_BITCODE = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1949,6 +1914,7 @@
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				ENABLE_BITCODE = NO;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				FRAMEWORK_SEARCH_PATHS = (

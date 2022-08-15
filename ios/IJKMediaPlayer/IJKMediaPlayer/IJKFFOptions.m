@@ -94,6 +94,20 @@
     }];
 }
 
+- (BOOL)hasOptionValue:(NSString *)key
+               ofCategory:(IJKFFOptionCategory)category
+{
+    if (!key)
+        return NO;
+    
+    NSMutableDictionary *options = [_optionCategories objectForKey:@(category)];
+    if (options) {
+        return [options objectForKey:key] != nil;
+    }
+    
+    return NO;
+}
+
 - (void)setOptionValue:(NSString *)value
                 forKey:(NSString *)key
             ofCategory:(IJKFFOptionCategory)category

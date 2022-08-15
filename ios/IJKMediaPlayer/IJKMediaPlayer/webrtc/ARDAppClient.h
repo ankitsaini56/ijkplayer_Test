@@ -9,11 +9,10 @@
  */
 
 #import <Foundation/Foundation.h>
+#import <WebRTC/RTCAudioTrack.h>
 #import <WebRTC/RTCPeerConnection.h>
 #import <WebRTC/RTCVideoTrack.h>
 #import "Nebula_interface.h"
-
-#define NEBULA_TRTC 1
 
 typedef NS_ENUM(NSInteger, ARDAppClientState) {
   // Disconnected from servers.
@@ -71,11 +70,9 @@ typedef NS_ENUM(NSInteger, ARDAppClientState) {
 @property(nonatomic, readonly) ARDAppClientState state;
 @property(nonatomic, weak) id<ARDAppClientDelegate> delegate;
 @property(nonatomic, assign, getter=isBroadcast) BOOL broadcast;
-#if NEBULA_TRTC
-@property(nonatomic, readwrite) long nebulaCtx;
 @property(nonatomic, readwrite) RTCIceGatheringState iceGatherState;
 @property(nonatomic, readwrite) NSMutableArray *iceCandidates;
-#endif
+@property(nonatomic, readonly) RTC_OBJC_TYPE(RTCAudioTrack) *micAudioTrack;
 // Convenience constructor since all expected use cases will need a delegate
 // in order to receive remote tracks.
 - (instancetype)initWithDelegate:(id<ARDAppClientDelegate>)delegate
@@ -90,18 +87,28 @@ typedef NS_ENUM(NSInteger, ARDAppClientState) {
 
 // Disconnects from the AppRTC servers and any connected clients.
 - (void)disconnect;
-#if NEBULA_TRTC
 - (long)getWebRTCApi;
 - (NSMutableArray*)buildIceServer;
 - (NSMutableArray*)buildIceServer:(NSDictionary *)json;
 - (char *)sendCommand:(NSString *)cmd;
-- (NSString *)genStartWebRTC:(NSString *)amToken
+- (NSString *)genStartLiveStreamEx:(int)channelId
+                        streamType:(NSString *)streamType;
+- (NSString *)genStartWebRtc:(NSString *)dmToken
                        realm:(NSString *)realm
-                        info:(NSDictionary *)info;
-- (NSString *)genStopWebRTC;
+                        info:(NSDictionary *)info
+                   channelId:(int)channelId
+                    streamId:(NSString *)streamId;
+- (NSString *)genStartWebRtcEx:(NSString *)dmToken
+                       realm:(NSString *)realm
+                        info:(NSDictionary *)info
+                   channelId:(int)channelId
+                    streamType:(NSString *)streamType;
+- (NSString *)genStopWebRtc;
 - (NSString *)genExchangeSdp:(NSString *)sdp
                          type:(NSString *)type;
+- (NSString *)genStartWebRtcStreams;
+- (NSString *)genStopWebRtcStreams;
 - (NSString *)combineOfferWithIceCandidate:(NSString *)sdp;
 - (void)separateIceCandidateWithAnswer:(NSString *)sdp;
-#endif
+- (void)setMicEnable:(BOOL)enable;
 @end

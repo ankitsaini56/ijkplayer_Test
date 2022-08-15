@@ -61,6 +61,7 @@ static GLboolean yuv420p_uploadTexture(IJK_GLES2_Renderer *renderer, SDL_VoutOve
     if (!renderer || !overlay)
         return GL_FALSE;
 
+    overlay->lock(overlay);
           int     planes[3]    = { 0, 1, 2 };
     const GLsizei widths[3]    = { overlay->pitches[0], overlay->pitches[1], overlay->pitches[2] };
     const GLsizei heights[3]   = { overlay->h,          overlay->h / 2,      overlay->h / 2 };
@@ -75,6 +76,7 @@ static GLboolean yuv420p_uploadTexture(IJK_GLES2_Renderer *renderer, SDL_VoutOve
             break;
         default:
             ALOGE("[yuv420p] unexpected format %x\n", overlay->format);
+            overlay->unlock(overlay);
             return GL_FALSE;
     }
 
@@ -94,6 +96,7 @@ static GLboolean yuv420p_uploadTexture(IJK_GLES2_Renderer *renderer, SDL_VoutOve
                      pixels[plane]);
     }
 
+    overlay->unlock(overlay);
     return GL_TRUE;
 }
 

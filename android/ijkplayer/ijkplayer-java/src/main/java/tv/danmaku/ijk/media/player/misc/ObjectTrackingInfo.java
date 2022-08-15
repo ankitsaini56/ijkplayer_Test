@@ -10,6 +10,7 @@ import java.util.List;
 
 public class ObjectTrackingInfo {
     public Rect rect;
+    public String category;
 
     public static List<ObjectTrackingInfo> parse(String jsonStr) {
         ArrayList info = new ArrayList();
@@ -20,25 +21,24 @@ public class ObjectTrackingInfo {
 
         try {
             JSONObject json = new JSONObject(jsonStr);
-            JSONObject jsonAGTX = json.optJSONObject("AGTX");
-            if (jsonAGTX == null) {
-                jsonAGTX = json.optJSONObject("agtx");
-                if (jsonAGTX == null) {
-                    return info;
-                }
+            JSONObject jsonRoot = getJsonRoot(json);
+            if (jsonRoot == null) {
+                return info;
             }
-            JSONObject jsonIVA = jsonAGTX.optJSONObject("iva");
+            JSONObject jsonIVA = jsonRoot.optJSONObject("iva");
             if (jsonIVA == null) {
                 return info;
             }
 
             JSONArray jsonOD = jsonIVA.optJSONArray("od");
             if (jsonOD != null && jsonOD.length() > 0) {
-                JSONObject jsonItem = jsonOD.optJSONObject(0);
-                if (jsonItem == null) {
-                    return info;
+                for (int i = 0; i < jsonOD.length(); i++) {
+                    JSONObject jsonItem = jsonOD.optJSONObject(i);
+                    if (jsonItem == null) {
+                        continue;
+                    }
+                    info.add(new ObjectTrackingInfo(jsonItem));
                 }
-                info.add(new ObjectTrackingInfo(jsonItem));
             } else {
                 JSONObject jsonAROI = jsonIVA.optJSONObject("aroi");
                 if (jsonAROI == null) {
@@ -53,6 +53,19 @@ public class ObjectTrackingInfo {
         return info;
     }
 
+    private static JSONObject getJsonRoot(JSONObject json) {
+        JSONObject root = json.optJSONObject("AGTX");
+        if (root != null) {
+            return root;
+        }
+        root = json.optJSONObject("agtx");
+        if (root != null) {
+            return root;
+        }
+        root = json.optJSONObject("result");
+        return root;
+    }
+
     ObjectTrackingInfo(JSONObject jsonRoot) {
         if (!parseOD(jsonRoot)) {
             parseROI(jsonRoot);
@@ -65,6 +78,7 @@ public class ObjectTrackingInfo {
             if (json == null) {
                 return false;
             }
+            category = json.optString("cat");
             JSONArray jsonRect = json.getJSONArray("rect");
             if (jsonRect.length() >= 4) {
                 rect = new Rect();
@@ -87,6 +101,7 @@ public class ObjectTrackingInfo {
             if (json == null) {
                 return false;
             }
+            category = "";
             JSONArray jsonRect = json.getJSONArray("rect");
             if (jsonRect.length() >= 4) {
                 rect = new Rect();

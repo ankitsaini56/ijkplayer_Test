@@ -55,11 +55,10 @@ static NSString * const kARDAudioTrackId = @"ARDAMSa0";
 static NSString * const kARDVideoTrackId = @"ARDAMSv0";
 static NSString * const kARDVideoTrackKind = @"video";
 
-#if NEBULA_TRTC
 #define IS_DEBUG 1
 static NSNumber * kRtcId = nil;
+static NSString * kStreamId = nil;
 static dispatch_queue_t tutk_queue;
-#endif
 // TODO(tkchin): Add these as UI options.
 #if defined(WEBRTC_IOS)
 static BOOL const kARDAppClientEnableTracing = NO;
@@ -140,11 +139,8 @@ static int const kKbpsMultiplier = 1000;
     _defaultPeerConnectionConstraints;
 @synthesize isLoopback = _isLoopback;
 @synthesize broadcast = _broadcast;
-#if NEBULA_TRTC
-@synthesize nebulaCtx = _nebulaCtx;
 @synthesize iceGatherState = _iceGatherState;
 @synthesize iceCandidates = _iceCandidates;
-#endif
 
 - (instancetype)init {
     self = [super init];
@@ -159,11 +155,9 @@ static int const kKbpsMultiplier = 1000;
     _delegate = delegate;
     NSURL *turnRequestURL = [NSURL URLWithString:kARDIceServerRequestUrl];
     _turnClient = [[ARDTURNClient alloc] initWithURL:turnRequestURL];
-#if NEBULA_TRTC
     _iceCandidates = [[NSMutableArray alloc] init];
     tutk_queue = dispatch_queue_create("com.tutk.rtc", nil);
     _nebulaAPI = nebulaAPI;
-#endif
     [self configure];
   }
   return self;
@@ -184,16 +178,15 @@ static int const kKbpsMultiplier = 1000;
     _channel = channel;
     _turnClient = turnClient;
     _delegate = delegate;
-#if NEBULA_TRTC
     _iceCandidates = [[NSMutableArray alloc] init];
     tutk_queue = dispatch_queue_create("com.tutk.rtc", nil);
-#endif
     [self configure];
   }
   return self;
 }
 
 - (void)configure {
+  _micAudioTrack = NULL;
   _messageQueue = [NSMutableArray array];
   _iceServers = [NSMutableArray array];
   _fileLogger = [[RTC_OBJC_TYPE(RTCFileLogger) alloc] init];
@@ -238,7 +231,7 @@ static int const kKbpsMultiplier = 1000;
   _state = state;
   [_delegate appClient:self didChangeState:_state];
 }
-#if NEBULA_TRTC
+
 - (NSMutableArray*)buildIceServer {
   NSLog(@"USing google ice server");
   NSString *iceServer = @"{ \
@@ -315,18 +308,27 @@ static int const kKbpsMultiplier = 1000;
     return array;
 }
 
-- (NSString *)genStartWebRTC:(NSString *)amToken
-                       realm:(NSString *)realm
-                        info:(NSDictionary *)info{
+- (NSString *)genStartLiveStreamEx:(int)channelId
+                        streamType:(NSString *)streamType{
   NSString *json = nil;
   NSMutableDictionary *dict = [[NSMutableDictionary alloc] init];
-  [dict setValue:@"startWebRTC" forKey:@"func"];
+  [dict setValue:@"startLiveStreamEx" forKey:@"func"];
   NSMutableDictionary *argsDict = [[NSMutableDictionary alloc] init];
-  [argsDict setValue:amToken forKey:@"am_token"];
-  [argsDict setValue:realm forKey:@"realm"];
-  if(info != nil) {
-    [argsDict setValue:info forKey:@"info"];
+  NSMutableArray *protocolArray = [[NSMutableArray alloc] init];
+  [protocolArray addObject:@"webrtc"];
+  [argsDict setValue:protocolArray forKey:@"preferProtocol"];
+  NSMutableArray *channelsArray = [[NSMutableArray alloc] init];
+  NSMutableDictionary *channelDict = [[NSMutableDictionary alloc] init];
+  if(channelId >= 0) {
+    [channelDict setValue:[NSNumber numberWithInt:channelId] forKey:@"channelId"];
   }
+  if(streamType != nil) {
+    [channelDict setValue:streamType forKey:@"streamType"];
+  }else {
+    [channelDict setValue:@"audioAndVideo" forKey:@"streamType"];
+  }
+  [channelsArray addObject:channelDict];
+  [argsDict setValue:channelsArray forKey:@"channels"];
   [dict setValue:argsDict forKey:@"args"];
   
   NSError *error;
@@ -335,12 +337,114 @@ static int const kKbpsMultiplier = 1000;
   return json;
 }
 
-- (NSString *)genStopWebRTC {
+- (NSString *)genStartPlayback:(int)channelId
+                    streamType:(NSString *)streamType
+             playbackStartTime:(int)playbackStartTime
+              playbackFileName:(NSString *)playbackFileName{
   NSString *json = nil;
   NSMutableDictionary *dict = [[NSMutableDictionary alloc] init];
-  [dict setValue:@"stopWebRTC" forKey:@"func"];
+  [dict setValue:@"startPlayback" forKey:@"func"];
   NSMutableDictionary *argsDict = [[NSMutableDictionary alloc] init];
-  [argsDict setValue:kRtcId forKey:@"RTC_ID"];
+  NSMutableArray *protocolArray = [[NSMutableArray alloc] init];
+  [protocolArray addObject:@"webrtc"];
+  [argsDict setValue:protocolArray forKey:@"preferProtocol"];
+//  NSMutableArray *channelsArray = [[NSMutableArray alloc] init];
+//  NSMutableDictionary *channelDict = [[NSMutableDictionary alloc] init];
+  if(channelId >= 0) {
+    [argsDict setValue:[NSNumber numberWithInt:channelId] forKey:@"channel"];
+  }
+  if(streamType != nil) {
+    [argsDict setValue:streamType forKey:@"streamType"];
+  }else {
+    [argsDict setValue:@"audioAndVideo" forKey:@"streamType"];
+  }
+  if(playbackStartTime >= 0) {
+    [argsDict setValue:[NSNumber numberWithInt:playbackStartTime] forKey:@"startTime"];
+  }
+  if(playbackFileName != nil) {
+    [argsDict setValue:playbackFileName forKey:@"fileName"];
+  }
+//  [channelsArray addObject:channelDict];
+//  [argsDict setValue:channelsArray forKey:@"channels"];
+  [dict setValue:argsDict forKey:@"args"];
+  
+  NSError *error;
+  NSData *data = [NSJSONSerialization dataWithJSONObject:dict options:kNilOptions error:&error];
+  json = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+  return json;
+}
+
+- (NSString *)genStartWebRtc:(NSString *)dmToken
+                       realm:(NSString *)realm
+                        info:(NSDictionary *)info
+                   channelId:(int)channelId
+                    streamId:(NSString *)streamId{
+  NSString *json = nil;
+  NSMutableDictionary *dict = [[NSMutableDictionary alloc] init];
+  [dict setValue:@"startWebRtc" forKey:@"func"];
+  NSMutableDictionary *argsDict = [[NSMutableDictionary alloc] init];
+  [argsDict setValue:dmToken forKey:@"amToken"];
+  [argsDict setValue:realm forKey:@"realm"];
+  [argsDict setValue:[NSNumber numberWithBool:false] forKey:@"disableAuthTurn"];
+  if(info != nil) {
+    [argsDict setValue:info forKey:@"info"];
+  }
+  NSMutableArray *channelsArray = [[NSMutableArray alloc] init];
+  NSMutableDictionary *channelDict = [[NSMutableDictionary alloc] init];
+  if(channelId >= 0) {
+    [channelDict setValue:[NSNumber numberWithInt:channelId] forKey:@"channelId"];
+  }
+  NSMutableArray *streamIdArray = [[NSMutableArray alloc] init];
+  [streamIdArray addObject:streamId];
+  [channelDict setValue:streamIdArray forKey:@"streamId"];
+  [channelsArray addObject:channelDict];
+  [argsDict setValue:channelsArray forKey:@"channels"];
+  [dict setValue:argsDict forKey:@"args"];
+  
+  NSError *error;
+  NSData *data = [NSJSONSerialization dataWithJSONObject:dict options:kNilOptions error:&error];
+  json = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+  return json;
+}
+
+- (NSString *)genStartWebRtcEx:(NSString *)dmToken
+                       realm:(NSString *)realm
+                        info:(NSDictionary *)info
+                   channelId:(int)channelId
+                    streamType:(NSString *)streamType{
+  NSString *json = nil;
+  NSMutableDictionary *dict = [[NSMutableDictionary alloc] init];
+  [dict setValue:@"startWebRtcEx" forKey:@"func"];
+  NSMutableDictionary *argsDict = [[NSMutableDictionary alloc] init];
+  [argsDict setValue:dmToken forKey:@"amToken"];
+  [argsDict setValue:realm forKey:@"realm"];
+  [argsDict setValue:[NSNumber numberWithBool:false] forKey:@"disableAuthTurn"];
+  if(info != nil) {
+    [argsDict setValue:info forKey:@"info"];
+  }
+  NSMutableArray *channelsArray = [[NSMutableArray alloc] init];
+  NSMutableDictionary *channelDict = [[NSMutableDictionary alloc] init];
+  if(channelId >= 0) {
+    [channelDict setValue:[NSNumber numberWithInt:channelId] forKey:@"channelId"];
+  }
+  [channelDict setValue:streamType forKey:@"streamType"];
+  [channelDict setValue:[NSNumber numberWithBool:true] forKey:@"autoPlay"];
+  [channelsArray addObject:channelDict];
+  [argsDict setValue:channelsArray forKey:@"channels"];
+  [dict setValue:argsDict forKey:@"args"];
+  
+  NSError *error;
+  NSData *data = [NSJSONSerialization dataWithJSONObject:dict options:kNilOptions error:&error];
+  json = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+  return json;
+}
+
+- (NSString *)genStopWebRtc {
+  NSString *json = nil;
+  NSMutableDictionary *dict = [[NSMutableDictionary alloc] init];
+  [dict setValue:@"stopWebRtc" forKey:@"func"];
+  NSMutableDictionary *argsDict = [[NSMutableDictionary alloc] init];
+  [argsDict setValue:kRtcId forKey:@"rtcId"];
   [dict setValue:argsDict forKey:@"args"];
   
   NSError *error;
@@ -356,7 +460,41 @@ static int const kKbpsMultiplier = 1000;
   NSMutableDictionary *argsDict = [[NSMutableDictionary alloc] init];
   [argsDict setValue:type forKey:@"type"];
   [argsDict setValue:sdp forKey:@"sdp"];
-  [argsDict setValue:kRtcId forKey:@"RTC_ID"];
+  [argsDict setValue:kRtcId forKey:@"rtcId"];
+  [dict setValue:argsDict forKey:@"args"];
+  
+  NSError *error;
+  NSData *data = [NSJSONSerialization dataWithJSONObject:dict options:kNilOptions error:&error];
+  json = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+  return json;
+}
+
+- (NSString *)genStartWebRtcStreams {
+  NSString *json = nil;
+  NSMutableDictionary *dict = [[NSMutableDictionary alloc] init];
+  [dict setValue:@"startWebRtcStreams" forKey:@"func"];
+  NSMutableDictionary *argsDict = [[NSMutableDictionary alloc] init];
+  [argsDict setValue:kRtcId forKey:@"rtcId"];
+  NSMutableArray *streamIdsArray = [[NSMutableArray alloc] init];
+  [streamIdsArray addObject:kStreamId];
+  [argsDict setValue:streamIdsArray forKey:@"streamIds"];
+  [dict setValue:argsDict forKey:@"args"];
+  
+  NSError *error;
+  NSData *data = [NSJSONSerialization dataWithJSONObject:dict options:kNilOptions error:&error];
+  json = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+  return json;
+}
+
+- (NSString *)genStopWebRtcStreams {
+  NSString *json = nil;
+  NSMutableDictionary *dict = [[NSMutableDictionary alloc] init];
+  [dict setValue:@"stopWebRtcStreams" forKey:@"func"];
+  NSMutableDictionary *argsDict = [[NSMutableDictionary alloc] init];
+  [argsDict setValue:kRtcId forKey:@"rtcId"];
+  NSMutableArray *streamIdsArray = [[NSMutableArray alloc] init];
+  [streamIdsArray addObject:kStreamId];
+  [argsDict setValue:streamIdsArray forKey:@"streamIds"];
   [dict setValue:argsDict forKey:@"args"];
   
   NSError *error;
@@ -426,7 +564,7 @@ static int const kKbpsMultiplier = 1000;
   NSLog(@"send command: %@", cmd);
 #endif
   char *response;
-  int ret = _nebulaAPI->Send_Command(_nebulaCtx, [cmd UTF8String], &response, 10000);
+  int ret = _nebulaAPI->Send_Command(_nebulaAPI->ctx, [cmd UTF8String], &response, 30000);
   if(ret < 0) {
     NSLog(@"Failed to Nebula_Client_Send_Command %@, errno: %d", cmd, ret);
     return nil;
@@ -443,7 +581,6 @@ static int const kKbpsMultiplier = 1000;
   }
   return 0;
 }
-#endif
 
 - (long)connectToRoomWithId:(NSString *)roomId
                    settings:(ARDSettingsModel *)settings
@@ -469,101 +606,104 @@ static int const kKbpsMultiplier = 1000;
   }
 #endif
 
-#if NEBULA_TRTC
-    //dispatch_async(tutk_queue, ^{
-        int ret;
-        long ctx;
-        ret = _nebulaAPI->Client_New([settings.udid UTF8String], [settings.credential UTF8String], &ctx);
-        if (ret < 0) {
-            NSLog(@"clien new from string failed");
-            return 0;
-        }
-        self.nebulaCtx = ctx;
-        //Start WebRTC
-        NSString *startWebRtcCmd = [self genStartWebRTC:settings.amToken realm:settings.realm info:settings.info];
-        char *obj = [self sendCommand:startWebRtcCmd];
-        if(obj == nil) {
-            NSLog(@"sendCommand start webrtc failed");
-            return 0;
-        }
-        NSDictionary *json = [NSDictionary dictionaryWithJSONString:@(obj)];
-        NSNumber *statusCode = json[@"statusCode"];
-        if(statusCode.intValue != 200) {
-            NSLog(@"start webrtc failed status: %d", statusCode.intValue);
-            return 0;
-        }
-        NSDictionary *content = json[@"content"];
-        kRtcId = content[@"RTC_ID"];
-        [self.iceServers addObjectsFromArray:[self buildIceServer:content]];
-        self.isTurnComplete = YES;
-        self.isInitiator = TRUE;
-        return [self startSignalingIfReady];
-    //});
-#else
-  // Request TURN.
-  __weak ARDAppClient *weakSelf = self;
-  [_turnClient requestServersWithCompletionHandler:^(NSArray *turnServers,
-                                                     NSError *error) {
-    if (error) {
-      RTCLogError(@"Error retrieving TURN servers: %@", error.localizedDescription);
+  if(_settings.playbackStartTime >= 0 || _settings.playbackFileName != nil) {
+    //startPlayback
+    NSString *startPlaybackCmd = [self genStartPlayback:settings.channelId streamType:settings.streamType playbackStartTime:settings.playbackStartTime playbackFileName:settings.playbackFileName];
+    char *playbackResp = [self sendCommand:startPlaybackCmd];
+    if(playbackResp == nil) {
+        NSLog(@"sendCommand start playback failed");
+        return 0;
     }
-    ARDAppClient *strongSelf = weakSelf;
-    [strongSelf.iceServers addObjectsFromArray:turnServers];
-    strongSelf.isTurnComplete = YES;
-    [strongSelf startSignalingIfReady];
-  }];
-
-  // Join room on room server.
-  [_roomServerClient joinRoomWithRoomId:roomId
-                             isLoopback:isLoopback
-      completionHandler:^(ARDJoinResponse *response, NSError *error) {
-    ARDAppClient *strongSelf = weakSelf;
-    if (error) {
-      [strongSelf.delegate appClient:strongSelf didError:error];
-      return;
+    NSDictionary *playbackDict = [NSDictionary dictionaryWithJSONString:@(playbackResp)];
+    NSDictionary *playbackContent = playbackDict[@"content"];
+    if(playbackContent == nil) {
+      NSLog(@"no content of startPlayback response");
+      return 0;
     }
-    NSError *joinError =
-        [[strongSelf class] errorForJoinResultType:response.result];
-    if (joinError) {
-      RTCLogError(@"Failed to join room:%@ on room server.", roomId);
-      [strongSelf disconnect];
-      [strongSelf.delegate appClient:strongSelf didError:joinError];
-      return;
-    }
-    RTCLog(@"Joined room:%@ on room server.", roomId);
-    strongSelf.roomId = response.roomId;
-    strongSelf.clientId = response.clientId;
-    strongSelf.isInitiator = response.isInitiator;
-    for (ARDSignalingMessage *message in response.messages) {
-      if (message.type == kARDSignalingMessageTypeOffer ||
-          message.type == kARDSignalingMessageTypeAnswer) {
-        strongSelf.hasReceivedSdp = YES;
-        [strongSelf.messageQueue insertObject:message atIndex:0];
-      } else {
-        [strongSelf.messageQueue addObject:message];
+    NSString *url = playbackContent[@"url"];
+    NSArray *sepratedUrl = [url componentsSeparatedByString:@"/"];
+    kStreamId = sepratedUrl.lastObject;
+  }else {
+    //startLiveStreamEx
+    if(!settings.isQuickConnect) {
+      NSString *startLiveStreamExCmd = [self genStartLiveStreamEx:settings.channelId streamType:settings.streamType];
+      char *liveStreamExResp = [self sendCommand:startLiveStreamExCmd];
+      if(liveStreamExResp == nil) {
+          NSLog(@"sendCommand start livestreamex failed");
+          return 0;
       }
+      NSDictionary *liveStreamExDict = [NSDictionary dictionaryWithJSONString:@(liveStreamExResp)];
+      NSDictionary *liveStreamExContent = liveStreamExDict[@"content"];
+      if(liveStreamExContent == nil) {
+        NSLog(@"no content of startLiveStreamEx response");
+        return 0;
+      }
+      NSArray *liveStreamExChannels = liveStreamExContent[@"channels"];
+      if(liveStreamExChannels == nil) {
+        NSLog(@"no channels of startLiveStreamEx content response");
+        return 0;
+      }
+      NSDictionary *channel = liveStreamExChannels[0];
+      NSString *url = channel[@"url"];
+      NSArray *sepratedUrl = [url componentsSeparatedByString:@"/"];
+      kStreamId = sepratedUrl.lastObject;
     }
-    strongSelf.webSocketURL = response.webSocketURL;
-    strongSelf.webSocketRestURL = response.webSocketRestURL;
-    [strongSelf registerWithColliderIfReady];
-    [strongSelf startSignalingIfReady];
-  }];
-#endif
+  }
+  
+  //Start WebRTC
+  if(!settings.isQuickConnect) {
+    NSString *startWebRtcCmd = [self genStartWebRtc:settings.dmToken realm:settings.realm info:settings.info channelId:settings.channelId streamId:kStreamId];
+    char *obj = [self sendCommand:startWebRtcCmd];
+    if(obj == nil) {
+        NSLog(@"sendCommand start webrtc failed");
+        return 0;
+    }
+    NSDictionary *json = [NSDictionary dictionaryWithJSONString:@(obj)];
+    NSNumber *statusCode = json[@"statusCode"];
+    if(statusCode.intValue != 200) {
+        NSLog(@"start webrtc failed status: %d", statusCode.intValue);
+        return 0;
+    }
+    NSDictionary *content = json[@"content"];
+    kRtcId = content[@"rtcId"];
+    [self.iceServers addObjectsFromArray:[self buildIceServer:content]];
+  }else {
+    NSString *startWebRtcExCmd = [self genStartWebRtcEx:settings.dmToken realm:settings.realm info:settings.info channelId:settings.channelId streamType:settings.streamType];
+    char *obj = [self sendCommand:startWebRtcExCmd];
+    if(obj == nil) {
+        NSLog(@"sendCommand start webrtcEx failed");
+        return 0;
+    }
+    NSDictionary *json = [NSDictionary dictionaryWithJSONString:@(obj)];
+    NSNumber *statusCode = json[@"statusCode"];
+    if(statusCode.intValue != 200) {
+        NSLog(@"start webrtcEx failed status: %d", statusCode.intValue);
+        return 0;
+    }
+    NSDictionary *content = json[@"content"];
+    kRtcId = content[@"rtcId"];
+    [self.iceServers addObjectsFromArray:[self buildIceServer:content]];
+    NSArray *channels = content[@"channels"];
+    if(channels == nil) {
+      NSLog(@"no channels of startLiveStreamEx content response");
+      return 0;
+    }
+    NSDictionary *channel = channels[0];
+    NSString *url = channel[@"url"];
+    NSArray *sepratedUrl = [url componentsSeparatedByString:@"/"];
+    kStreamId = sepratedUrl.lastObject;
+  }
+  
+  self.isTurnComplete = YES;
+  self.isInitiator = TRUE;
+  return [self startSignalingIfReady];
 }
 
 - (void)disconnect {
   if (_state == kARDAppClientStateDisconnected) {
     return;
   }
-#if NEBULA_TRTC
-  [self sendCommand:[self genStopWebRTC]];
-#else
-  if (self.hasJoinedRoomServerRoom) {
-    [_roomServerClient leaveRoomWithRoomId:_roomId
-                                  clientId:_clientId
-                         completionHandler:nil];
-  }
-#endif
+  [self sendCommand:[self genStopWebRtc]];
   if (_channel) {
     if (_channel.state == kARDSignalingChannelStateRegistered) {
       // Tell the other client we're hanging up.
@@ -680,22 +820,12 @@ static int const kKbpsMultiplier = 1000;
 - (void)peerConnection:(RTC_OBJC_TYPE(RTCPeerConnection) *)peerConnection
     didChangeIceGatheringState:(RTCIceGatheringState)newState {
   RTCLog(@"ICE gathering state changed: %ld", (long)newState);
-#if NEBULA_TRTC
     self.iceGatherState = newState;
-#endif
 }
 
 - (void)peerConnection:(RTC_OBJC_TYPE(RTCPeerConnection) *)peerConnection
     didGenerateIceCandidate:(RTC_OBJC_TYPE(RTCIceCandidate) *)candidate {
-#if NEBULA_TRTC
     [_iceCandidates addObject:candidate];
-#else
-  dispatch_async(dispatch_get_main_queue(), ^{
-    ARDICECandidateMessage *message =
-        [[ARDICECandidateMessage alloc] initWithCandidate:candidate];
-    [self sendSignalingMessage:message];
-  });
-#endif
 }
 
 - (void)peerConnection:(RTC_OBJC_TYPE(RTCPeerConnection) *)peerConnection
@@ -749,7 +879,6 @@ didCreateSessionDescription:(RTC_OBJC_TYPE(RTCSessionDescription) *)sdp
      didSetSessionDescriptionWithError:error];
         }];
         
-#if NEBULA_TRTC
         int count = 0;
         NSUInteger size = 0;
         while(self.iceGatherState != RTCIceGatheringStateComplete) {
@@ -763,7 +892,7 @@ didCreateSessionDescription:(RTC_OBJC_TYPE(RTCSessionDescription) *)sdp
                     count++;
                 }
             }
-            usleep(200000);
+            usleep(100000);
         }
         NSString *offer = [self combineOfferWithIceCandidate:sdp.sdp];
 #if IS_DEBUG
@@ -797,11 +926,13 @@ didCreateSessionDescription:(RTC_OBJC_TYPE(RTCSessionDescription) *)sdp
             NSLog(@"Failed to exchageSDP");
             return;
         }
-#else
-        ARDSessionDescriptionMessage *message =
-        [[ARDSessionDescriptionMessage alloc] initWithDescription:sdp];
-        [self sendSignalingMessage:message];
-#endif
+        if(!_settings.isQuickConnect) {
+          NSString *startWebRtcStreamsCmd = [self genStartWebRtcStreams];
+          char *startWebRtcStreamsResp = [self sendCommand:startWebRtcStreamsCmd];
+          if(startWebRtcStreamsResp != nil)
+            NSLog(@"response of startWebRtcStreams=%@", @(startWebRtcStreamsResp));
+        }
+        
         [self setMaxBitrateForPeerConnectionVideoSender];
     });
 }
@@ -836,6 +967,16 @@ didCreateSessionDescription:(RTC_OBJC_TYPE(RTCSessionDescription) *)sdp
                                          error:error];
              }];
     }
+
+      //
+      // <HACK> reset audio session to overwrite RTCAudioSession setting
+      //
+      [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryPlayAndRecord withOptions:
+       AVAudioSessionCategoryOptionDuckOthers|
+       AVAudioSessionCategoryOptionAllowBluetooth |
+       AVAudioSessionCategoryOptionDefaultToSpeaker error:nil];
+      [[AVAudioSession sharedInstance] setMode:AVAudioSessionModeDefault error:nil];
+      [[AVAudioSession sharedInstance] setActive:YES error:nil];
   });
 }
 
@@ -856,11 +997,7 @@ didCreateSessionDescription:(RTC_OBJC_TYPE(RTCSessionDescription) *)sdp
 #endif
 
 - (BOOL)hasJoinedRoomServerRoom {
-#if NEBULA_TRTC
-  return [kRtcId intValue] > 0;
-#else
-  return _clientId.length;
-#endif
+  return [kRtcId intValue] != 0;
 }
 
 // Begins the peer connection connection process if we have both joined a room
@@ -882,6 +1019,10 @@ didCreateSessionDescription:(RTC_OBJC_TYPE(RTCSessionDescription) *)sdp
   config.iceServers = _iceServers;
   config.sdpSemantics = RTCSdpSemanticsUnifiedPlan;
   config.certificate = pcert;
+  config.bundlePolicy = RTCBundlePolicyMaxBundle;
+  config.tcpCandidatePolicy = RTCTcpCandidatePolicyDisabled;
+  config.rtcpMuxPolicy = RTCRtcpMuxPolicyRequire;
+  config.disableLinkLocalNetworks = YES;
 
   _peerConnection = [_factory peerConnectionWithConfiguration:config
                                                   constraints:constraints
@@ -1045,6 +1186,7 @@ didCreateSessionDescription:(RTC_OBJC_TYPE(RTCSessionDescription) *)sdp
   RTC_OBJC_TYPE(RTCAudioSource) *source = [_factory audioSourceWithConstraints:constraints];
   RTC_OBJC_TYPE(RTCAudioTrack) *track = [_factory audioTrackWithSource:source
                                                                trackId:kARDAudioTrackId];
+  _micAudioTrack = track;
   [_peerConnection addTrack:track streamIds:@[ kARDMediaStreamId ]];
   _localVideoTrack = [self createLocalVideoTrack];
   if (_localVideoTrack) {
@@ -1087,6 +1229,14 @@ didCreateSessionDescription:(RTC_OBJC_TYPE(RTCSessionDescription) *)sdp
 #endif
 
   return [_factory videoTrackWithSource:source trackId:kARDVideoTrackId];
+}
+
+- (void)setMicEnable:(BOOL)enable {
+    if (_micAudioTrack == NULL) {
+        NSLog(@"setMicEnable: _micAudioTrack is NULL!!");
+        return;
+    }
+    [_micAudioTrack setIsEnabled:enable];
 }
 
 #pragma mark - Collider methods

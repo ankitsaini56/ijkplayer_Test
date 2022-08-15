@@ -35,5 +35,6 @@
 
 - (UIImage*) snapshot;
 - (void)setShouldLockWhileBeingMovedToWindow:(BOOL)shouldLockWhiteBeingMovedToWindow __attribute__((deprecated("unused")));
+- (void) stop;
 
 @end

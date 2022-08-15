@@ -32,11 +32,13 @@ SDL_mutex *SDL_CreateMutex(void)
 {
     SDL_mutex *mutex;
     mutex = (SDL_mutex *) mallocz(sizeof(SDL_mutex));
+    assert(mutex);
     if (!mutex)
         return NULL;
 
     if (pthread_mutex_init(&mutex->id, NULL) != 0) {
         free(mutex);
+        assert(0);
         return NULL;
     }
 

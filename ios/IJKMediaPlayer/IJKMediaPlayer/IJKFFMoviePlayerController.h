@@ -74,12 +74,7 @@ typedef enum IJKLogLevel {
 
 @interface IJKFFMoviePlayerController : NSObject <IJKMediaPlayback, ARDAppClientDelegate>
 
-- (id)initWithWebRTC:(NSString *)udid
-      withCredential:(NSString *)credential
-         withAmToken:(NSString *)amToken
-           withRealm:(NSString *)realm
-       withNebulaAPI:(const NebulaAPI *)nebulaAPIs
-         withOptions:(IJKFFOptions *)options;
+- (id)initWithOptions:(IJKFFOptions *)options;
 
 - (id)initWithContentURL:(NSURL *)aUrl
              withOptions:(IJKFFOptions *)options;
@@ -120,6 +115,19 @@ typedef enum IJKLogLevel {
 @property(nonatomic, readonly) CGFloat fpsInMeta;
 @property(nonatomic, readonly) CGFloat fpsAtOutput;
 @property(nonatomic) BOOL shouldShowHudView;
+@property(nonatomic) BOOL asyncShutdown;
+@property(nonatomic) BOOL inDownloadMode;
+
+@property(nonatomic, assign) CGFloat baseScale;
+@property(nonatomic, assign) CGFloat minScale;
+@property(nonatomic, assign) CGFloat maxScale;
+@property(nonatomic, assign) CGPoint lastPoint;
+@property(nonatomic, assign) CGSize frameSize;
+@property(nonatomic, assign) ObjectTrackingInfoList objTrackList;
+@property(nonatomic) long webrtcAPIs;
+
+@property(nonatomic, copy) void (^onFling)(CGPoint translation, CGPoint velocity);
+@property(nonatomic, copy) void (^onDownloadCompleted)(int result);
 
 - (void)setOptionValue:(NSString *)value
                 forKey:(NSString *)key
@@ -152,6 +160,10 @@ typedef enum IJKLogLevel {
 
 #pragma mark KVO properties
 @property (nonatomic, readonly) IJKFFMonitor *monitor;
+
+- (void)initCommon;
+- (void)resetView;
+- (void)setWebRTCMic:(BOOL)enable;
 
 @end
 

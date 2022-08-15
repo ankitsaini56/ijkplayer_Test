@@ -74,11 +74,13 @@ static void func_unref(SDL_VoutOverlay *overlay)
         return;
     }
 
+    overlay->lock(overlay);
     CVBufferRelease(opaque->pixel_buffer);
 
     opaque->pixel_buffer = NULL;
     overlay->pixels[0] = NULL;
     overlay->pixels[1] = NULL;
+    overlay->unlock(overlay);
 
     return;
 }
@@ -108,12 +110,10 @@ static int func_fill_frame(SDL_VoutOverlay *overlay, const AVFrame *frame)
         opaque->pixel_buffer = NULL;
         return -1;
     }
-    // overlay->pixels[0]  = CVPixelBufferGetBaseAddressOfPlane(pixel_buffer, 0);
-    // overlay->pixels[1]  = CVPixelBufferGetBaseAddressOfPlane(pixel_buffer, 1);
-    overlay->pixels[0]  = NULL;
-    overlay->pixels[1]  = NULL;
-    overlay->pitches[0] = CVPixelBufferGetWidthOfPlane(pixel_buffer, 0);
-    overlay->pitches[1] = CVPixelBufferGetWidthOfPlane(pixel_buffer, 1);
+    overlay->pixels[0]  = frame->data[0];
+    overlay->pixels[1]  = frame->data[1];
+    overlay->pitches[0] = frame->linesize[0];
+    overlay->pitches[1] = frame->linesize[1];
     CVPixelBufferUnlockBaseAddress(pixel_buffer, 0);
 #else
     overlay->pixels[0]  = NULL;
@@ -152,8 +152,14 @@ CVPixelBufferRef SDL_VoutOverlayVideoToolBox_GetCVPixelBufferRef(SDL_VoutOverlay
     if (!check_object(overlay, __func__))
         return NULL;
 
+    overlay->lock(overlay);
     SDL_VoutOverlay_Opaque *opaque = overlay->opaque;
-    return opaque->pixel_buffer;
+    CVPixelBufferRef pixel_buffer = opaque->pixel_buffer;
+    if (pixel_buffer != NULL) {
+        CVPixelBufferRetain(pixel_buffer);
+    }
+    overlay->unlock(overlay);
+    return pixel_buffer;
 }
 
 SDL_VoutOverlay *SDL_VoutVideoToolBox_CreateOverlay(int width, int height, SDL_Vout *display)

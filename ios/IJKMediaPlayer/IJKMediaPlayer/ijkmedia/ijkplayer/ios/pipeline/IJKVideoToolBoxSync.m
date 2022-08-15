@@ -377,6 +377,12 @@ static void VTDecoderCallback(void *decompressionOutputRefCon,
             newFrame->pic.height = (int)CVPixelBufferGetHeight(imageBuffer);
         }
 
+        CVPixelBufferLockBaseAddress(imageBuffer, 0);
+        newFrame->pic.data[0] = CVPixelBufferGetBaseAddressOfPlane(imageBuffer, 0);
+        newFrame->pic.linesize[0] = CVPixelBufferGetBytesPerRowOfPlane(imageBuffer, 0);
+        newFrame->pic.data[1] = CVPixelBufferGetBaseAddressOfPlane(imageBuffer, 1);
+        newFrame->pic.linesize[1] = CVPixelBufferGetBytesPerRowOfPlane(imageBuffer, 1);
+        CVPixelBufferUnlockBaseAddress(imageBuffer, 0);
 
         newFrame->pic.opaque = CVBufferRetain(imageBuffer);
         SortQueuePush(ctx, newFrame);
@@ -663,10 +669,6 @@ static int decode_video_internal(Ijk_VideoToolBox_Opaque* context, AVCodecContex
         }
         ALOGI("%s - CreateSampleBufferFrom failed", __FUNCTION__);
         goto failed;
-    }
-
-    if (avpkt->flags & AV_PKT_FLAG_NEW_SEG) {
-        context->new_seg_flag = true;
     }
 
     sample_info = &context->sample_info;

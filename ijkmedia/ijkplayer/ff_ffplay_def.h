@@ -59,8 +59,6 @@
 #endif
 
 #include <stdbool.h>
-#include "ijkavformat/ijkiomanager.h"
-#include "ijkavformat/ijkioapplication.h"
 #include "ff_ffinc.h"
 #include "ff_ffmsg_queue.h"
 #include "ff_ffpipenode.h"
@@ -524,6 +522,7 @@ typedef struct FFStatistic
     float avdelay;
     float avdiff;
     int64_t bit_rate;
+    int64_t network_bit_rate;
 
     FFTrackCacheStatistic video_cache;
     FFTrackCacheStatistic audio_cache;
@@ -729,12 +728,8 @@ typedef struct FFPlayer {
     int         pf_playback_volume_changed;
 
     void               *inject_opaque;
-    void               *ijkio_inject_opaque;
     FFStatistic         stat;
     FFDemuxCacheControl dcc;
-
-    AVApplicationContext *app_ctx;
-    IjkIOManagerContext *ijkio_manager_ctx;
 
     int enable_accurate_seek;
     int accurate_seek_timeout;
@@ -756,7 +751,10 @@ typedef struct FFPlayer {
     int disable_multithread_delaying;
     int video_seeking;
     int low_delay;
+    int low_delay_start_threshold;
+    int low_delay_stop_threshold;
     int high_speed_playback;
+    int hack_claire_control;
 } FFPlayer;
 
 #define fftime_to_milliseconds(ts) (av_rescale(ts, 1000, AV_TIME_BASE))
@@ -881,13 +879,9 @@ inline static void ffp_reset_internal(FFPlayer *ffp)
     ffp->pf_playback_volume             = 1.0f;
     ffp->pf_playback_volume_changed     = 0;
 
-    av_application_closep(&ffp->app_ctx);
-    ijkio_manager_destroyp(&ffp->ijkio_manager_ctx);
-
     msg_queue_flush(&ffp->msg_queue);
 
     ffp->inject_opaque = NULL;
-    ffp->ijkio_inject_opaque = NULL;
     ffp_reset_statistic(&ffp->stat);
     ffp_reset_demux_cache_control(&ffp->dcc);
 }

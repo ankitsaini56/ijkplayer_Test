@@ -140,6 +140,7 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
     public static final int FFP_PROP_INT64_LOGICAL_FILE_SIZE                = 20209;
     public static final int FFP_PROP_INT64_SHARE_CACHE_DATA                 = 20210;
     public static final int FFP_PROP_INT64_BIT_RATE                         = 20100;
+    public static final int FFP_PROP_INT64_NETWORK_BIT_RATE                 = 20101;
     public static final int FFP_PROP_INT64_TCP_SPEED                        = 20200;
     public static final int FFP_PROP_INT64_LATEST_SEEK_LOAD_DURATION        = 20300;
     public static final int FFP_PROP_INT64_IMMEDIATE_RECONNECT              = 20211;
@@ -838,6 +839,10 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
 
     public long getBitRate() {
         return _getPropertyLong(FFP_PROP_INT64_BIT_RATE, 0);
+    }
+
+    public long getNetworkBitRate() {
+        return _getPropertyLong(FFP_PROP_INT64_NETWORK_BIT_RATE, 0);
     }
 
     public long getTcpSpeed() {

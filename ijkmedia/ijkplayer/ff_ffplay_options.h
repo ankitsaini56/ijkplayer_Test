@@ -172,6 +172,12 @@ static const AVOption ffp_context_options[] = {
         OPTION_OFFSET(disable_multithread_delaying),           OPTION_INT(0, 0, 1) },
     { "low-delay",                          "enable low delay mode",
         OPTION_OFFSET(low_delay),           OPTION_INT(0, 0, 1) },
+    { "low-delay-start-threshold",          "threshold to start low delay mode",
+        OPTION_OFFSET(low_delay_start_threshold), OPTION_INT(700, 0, INT_MAX) },
+    { "low-delay-stop-threshold",          "threshold to stop low delay mode",
+        OPTION_OFFSET(low_delay_stop_threshold), OPTION_INT(100, 0, INT_MAX) },
+    { "hack-claire-control",                    "hack for claire control",
+        OPTION_OFFSET(hack_claire_control),     OPTION_INT(0, 0, 1) },
 
     // set on runtime options
     { "video-record-path",                   "video record path",

@@ -87,6 +87,7 @@
 #define FFP_PROP_INT64_AUDIO_CACHED_PACKETS             20010
 
 #define FFP_PROP_INT64_BIT_RATE                         20100
+#define FFP_PROP_INT64_NETWORK_BIT_RATE                 20101
 
 #define FFP_PROP_INT64_TCP_SPEED                        20200
 

@@ -22,5 +22,22 @@
         android:layout_gravity="center_horizontal"
         android:text="@string/play"
         />
+    <TextView
+        android:text="@string/qrcode_prompt"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"/>
 
+    <cn.bingoogolapple.qrcode.zxing.ZXingView
+        android:id="@+id/preview"
+        android:layout_width="200dp"
+        android:layout_height="200dp"
+        android:layout_gravity="center_horizontal"
+        />
+    <ProgressBar
+        android:id="@+id/pbLoading"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:visibility="gone"
+        />
 </LinearLayout>

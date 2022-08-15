@@ -25,6 +25,19 @@
 #import <UIKit/UIKit.h>
 #import "Nebula_interface.h"
 
+#define MAX_OBJECT_TRACK 10
+#define IJK_NOEVENT_VALUE -1
+#define IJK_NOCHANNEL_VALUE -1
+#define INVALID_WEBRTC_ID 0
+
+#define MKTAG(a,b,c,d) ((a) | ((b) << 8) | ((c) << 16) | ((unsigned)(d) << 24))
+#define ERRTAG(a, b, c, d) (-(int)MKTAG(a, b, c, d))
+
+//
+// <INFO>: swift define need to be constant
+//
+#define ERROR_HTTP_UNAUTHORIZED 0xcecfcb08 // ERRTAG(0xF8,'4','0','1')
+
 typedef NS_ENUM(NSInteger, IJKMPMovieScalingMode) {
     IJKMPMovieScalingModeNone,       // No scaling
     IJKMPMovieScalingModeAspectFit,  // Uniform scale until one dimension fits
@@ -68,17 +81,29 @@ typedef NS_ENUM(NSInteger, Mode) {
     OBJECT_DETECT
 };
 
+typedef void (*OnFling)(float translationX, float translationY, float velocityX, float velocityY);
+
+typedef struct {
+    CGRect rect;
+    NSString *category;
+} ObjectTrackingInfo;
+
+typedef struct {
+    int size;
+    ObjectTrackingInfo info[MAX_OBJECT_TRACK];
+} ObjectTrackingInfoList;
+
 @interface Frame : NSObject
 
 @property(nonatomic, readonly) NSData *pixels;
 @property(nonatomic, readonly) int width;
 @property(nonatomic, readonly) int height;
-@property(nonatomic, readonly) CGRect roi;
+@property(nonatomic, readonly) ObjectTrackingInfoList objTrackList;
 
 - (instancetype)initFrame:(NSData *)pixels
                 withWidth:(int)w
                 andHeight:(int)h
-                andROI:(CGRect)roi;
+                andObjTrackList:(ObjectTrackingInfoList)objTrackList;
 
 @end
 
@@ -94,12 +119,15 @@ typedef NS_ENUM(NSInteger, Mode) {
 - (void)stop;
 - (BOOL)isPlaying;
 - (void)shutdown;
+- (void)shutdown:(BOOL)async;
 - (void)setPauseInBackground:(BOOL)pause;
 - (int) startVideoRecord:(NSString *)path;
 - (int) startVideoRecord:(NSString *)path
             withDuration:(int)durationInSeconds;
 - (int) stopVideoRecord;
-- (int) toMp4:(NSString *)path;
+- (int) toMp4:(NSString *)path
+         andOnComplete: ( void ( ^ )( int ) )onComplete;
+
 - (int) draw:(Frame *)frame
 withMainView:(UIImageView *)mainView
   andSubView:(UIImageView *)subView
@@ -109,9 +137,27 @@ withMainView:(UIImageView *)mainView
 - (float)videoDecodeFramesPerSecond;
 - (float)videoOutputFramesPerSecond;
 - (int64_t)videoBitRate;
+- (int64_t)networkBitRate;
 - (int64_t)videoCachedDuration;
 - (int64_t)audioCachedDuration;
 - (float)avdiff;
+- (void)resetView;
+- (void)setWebRTCMic:(BOOL)enable;
+
+- (long)startWebRTC:(NSString *)dmToken
+           withRealm:(NSString *)realm
+      withNebulaAPI:(const NebulaAPI *)nebulaAPIs;
+
+- (long)startWebRTC:(NSString *)dmToken
+          andRealm:(NSString *)realm
+       andNebulaAPI:(const NebulaAPI *)nebulaAPI
+      andStreamType:(NSString *)streamType
+       andStartTime:(int)playbackStartTime
+        andFileName:(NSString *)playbackFileName
+       andChannelId:(int)channelId
+  andIsQuickConnect:(bool)isQuickConnect;
+
+- (void)setVideoPath:(NSString *)path;
 
 @property(nonatomic, readonly)  UIView *view;
 @property(nonatomic)            NSTimeInterval currentPlaybackTime;
@@ -144,8 +190,11 @@ withMainView:(UIImageView *)mainView
 @property (nonatomic, readonly) Frame *RGBAFrame;
 @property (nonatomic) int currentX;
 @property (nonatomic) int currentY;
-@property (nonatomic) CGRect roi;
+@property (nonatomic) ObjectTrackingInfoList objTrackList;
 @property (nonatomic) NSTimeInterval lastFoundObjectTime;
+
+@property(nonatomic, assign) CGFloat maxScale;
+@property(nonatomic, copy) void (^onFling)(CGPoint translation, CGPoint velocity);
 
 - (UIImage *)thumbnailImageAtCurrentTime;
 
@@ -214,6 +263,9 @@ IJK_EXTERN NSString *const IJKMPMoviePlayerSeekVideoStartNotification;
 IJK_EXTERN NSString *const IJKMPMoviePlayerPlayFrameDroppedNotification;
 IJK_EXTERN NSString *const IJKMPMoviePlayerPlayFrameNotDroppedNotification;
 IJK_EXTERN NSString *const IJKMPMoviePlayerVideoRecordCompleteNotification;
+
+IJK_EXTERN NSString *const IJKStreamTypeAudioAndVideo;
+IJK_EXTERN NSString *const IJKStreamTypeAudioAndSubVideo;
 
 @end
 

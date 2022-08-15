@@ -187,7 +187,7 @@ public interface IMediaPlayer {
         void onTimedText(IMediaPlayer mp, IjkTimedText text);
     }
 
-    interface OnCompleteListener {
+    interface DownloadListener {
         void onComplete(int result);
     }
 

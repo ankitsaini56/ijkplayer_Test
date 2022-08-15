@@ -11,21 +11,16 @@
 
 @implementation Frame
 
-@synthesize pixels = _pixels;
-@synthesize width = _width;
-@synthesize height = _height;
-@synthesize roi = _roi;
-
 - (instancetype)initFrame:(NSData *)pixels
                 withWidth:(int)w
                 andHeight:(int)h
-                   andROI:(CGRect)roi;
+          andObjTrackList:(ObjectTrackingInfoList)objTrackList;
 {
     self = [super init];
     _pixels = pixels;
     _width = w;
     _height = h;
-    _roi = roi;
+    _objTrackList = objTrackList;
     return self;
 }
 @end

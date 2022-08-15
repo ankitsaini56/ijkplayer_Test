@@ -625,7 +625,7 @@ public class PeerConnectionClient {
     // Use ECDSA encryption.
     rtcConfig.keyType = PeerConnection.KeyType.ECDSA;
     // Enable DTLS for normal calls and disable for loopback calls.
-    rtcConfig.enableDtlsSrtp = !peerConnectionParameters.loopback;
+//    rtcConfig.enableDtlsSrtp = !peerConnectionParameters.loopback;
     rtcConfig.sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN;
 
     peerConnection = factory.createPeerConnection(rtcConfig, pcObserver);
@@ -1257,7 +1257,8 @@ public class PeerConnectionClient {
         Log.d(TAG, "PeerConnectionState: " + newState);
         if (newState == PeerConnectionState.CONNECTED) {
           events.onConnected();
-        } else if (newState == PeerConnectionState.DISCONNECTED) {
+        } else if (newState == PeerConnectionState.DISCONNECTED ||
+                newState == PeerConnectionState.CLOSED) {
           events.onDisconnected();
         } else if (newState == PeerConnectionState.FAILED) {
           reportError("DTLS connection failed.");

@@ -75,4 +75,6 @@
     <string name="no">No</string>
     <string name="camera2_texture_only_error">Camera2 only supports capturing to texture. Either disable Camera2 or enable capturing to texture in the options.</string>
 
+    <string name="qrcode_prompt">You can play avapi4 source by scan qrcode, qrcode format { \"udid\": \"YOUR_UDID\", \"credential\": \"YOUR_CRENDENTIAL\", \"dmToken\": \"YOUR_DM_TOKEN\", \"realm\": \"YOUR_REALM\" }</string>
+
 </resources>

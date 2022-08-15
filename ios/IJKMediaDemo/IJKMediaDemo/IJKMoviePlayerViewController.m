@@ -19,12 +19,26 @@
 #import "IOTCAPIs.h"
 #import "NebulaAPIs.h"
 #import "TUTKGlobalAPIs.h"
+#import "IOTCGlobalLock.h"
+#import "IJKMediaFramework/AVAPI3_interface.h"
 #import "IJKMediaFramework/AVAPI4_interface.h"
 #import "IJKMoviePlayerViewController.h"
 #import "IJKMediaControl.h"
 #import "IJKCommon.h"
 #import "IJKDemoHistory.h"
 #import "IJKMediaFramework/Nebula_interface.h"
+
+const AVAPI3 avAPI3s = {
+    .size = sizeof(AVAPI3),
+    .ClientStartEx = avClientStartEx,
+    .ClientStop = avClientStop,
+    .SendIOCtrl = avSendIOCtrl,
+    .RecvIOCtrl = avRecvIOCtrl,
+    .RecvAudioData = avRecvAudioData,
+    .RecvFrameData2 = avRecvFrameData2,
+    .GlobalLock = IOTC_GlobalLock_Lock,
+    .GlobalUnlock = IOTC_GlobalLock_Unlock,
+};
 
 const AVAPI4 avAPIs = {
     .size = sizeof(AVAPI4),
@@ -54,44 +68,46 @@ static int Send_Command(long ctx, const char *req, char **response, int timeoutM
     return ret;
 }
 
-const NebulaAPI nebulaAPIs = {
+NebulaAPI nebulaAPIs = {
+    .ctx = 0,
     .size = sizeof(NebulaAPI),
-    .Client_New = Client_New,
     .Send_Command = Send_Command
 };
 
+void nebulaClientConnectStateFn(NebulaClientCtx *client, NebulaDeviceLoginState state) {
+}
 
 static const bool DEMO_VIDEO_RECORD = false;
-static const bool DEMO_AVTECH_SEEK = false;
 static const bool DEMO_AVAPI3 = false;
-static bool DEMO_AVAPI4 = false;
+static const bool DEMO_AVAPI4 = false;
 static const bool DEMO_WEBRTC = false;
 static const bool DEMO_OBJECT_TRACKING = false;
 static const bool DEMO_TOMP4 = false;
-static const char *AVTECH_RTSP_URL = "YOUR_RTSP_URL";
-static const char *AVAPI3_UID = "YOUR_UID";
-static const char *AVAPI3_ACCOUNT = "YOUR_ACCOUNT";
-static const char *AVAPI3_PASSWORD = "YOUR_PASSOWRD";
+static const bool DEMO_SCALE_GESTURE = false;
+static const char *IOTC_LICENSE_KEY = "your_license_key";
+static const char *AVAPI3_UID = "your_uid";
+static const char *AVAPI3_ACCOUNT = "your_account";
+static const char *AVAPI3_PASSWORD = "your_password";
 static const int AVAPI_CHANNEL = 0;
-static const char *AVAPI4_UDID = "YOUR_UDID";
-static const char *AVAPI4_CREDENTIAL = "YOUR_CREDENTIAL";
-static const char *AVAPI4_AMTOKEN = "YOUR_CREDENTIAL";
-static const char *AVAPI4_REALM = "YOUR_REALM";
-static const char *AVAPI4_FILENAME = "YOUR_FILENAME";
-static const char *WEBRTC_UDID = "YOUR_UDID";
-static const char *WEBRTC_CREDENTIAL = "YOUR_CREDENTIAL";
-static const char *WEBRTC_AMTOKEN = "YOUR_AMTOKEN";
-static const char *WEBRTC_REALM = "YOUR_REALM";
+static const char *AVAPI4_UDID = "your_udid";
+static const char *AVAPI4_CREDENTIAL = "your_credential";
+static const char *AVAPI4_DMTOKEN = "your_dmtoken";
+static const char *AVAPI4_REALM = "your_realm";
+static const char *AVAPI4_FILENAME = "20200518013511";
+static const char *WEBRTC_UDID = "your_udid";
+static const char *WEBRTC_CREDENTIAL = "your_credential";
+static const char *WEBRTC_DMTOKEN = "your_dmtoken";
+static const char *WEBRTC_REALM = "your_realm";
 
 //
 // <INFO>: If live url channel is not 0, need to add account, password, and session-id parameters to url.
 //
-static const char *AVAPI3_LIVE_URL="avapi://tutk.com/live?channel=%d&av-index=%d";
+static const char *AVAPI3_LIVE_URL="avapi://tutk.com/live?av-index=%d";
 
 static const unsigned int AVAPI3_START_TIME = 1580882907;
 static const char *AVAPI3_PLAYBACK_URL="avapi://tutk.com/playback?session-id=%d&channel=%d&account=%s&password=%s&start-time=%d&av-index=%d";
 
-static const char *AVAPI4_LIVE_URL="avapi://tutk.com/live?channel=%d&av-index=%d";
+static const char *AVAPI4_LIVE_URL="avapi://tutk.com/live?av-index=%d";
 static const char *AVAPI4_PLAYBACK_URL="avapi://tutk.com/playback?session-id=%d&channel=%d&filename=%s&av-index=%d";
 
 void loginCallback(NebulaClientCtx *client, NebulaDeviceLoginState state)
@@ -119,20 +135,7 @@ static NebulaClientCtx *clientCtx;
 - (instancetype)initWithURL:(NSURL *)url {
     self = [self initWithNibName:@"IJKMoviePlayerViewController" bundle:nil];
     if (self) {
-        if (DEMO_AVTECH_SEEK) {
-            self.url = [NSURL URLWithString:@(AVTECH_RTSP_URL)];
-        } else {
-            self.url = url;
-        }
-    }
-    return self;
-}
-
-- (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
-{
-    self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil];
-    if (self) {
-        // Custom initialization
+        self.url = url;
     }
     return self;
 }
@@ -141,10 +144,6 @@ static NebulaClientCtx *clientCtx;
 - (void)viewDidLoad
 {
     [super viewDidLoad];
-    // Do any additional setup after loading the view from its nib.
-    
-    //    [[UIApplication sharedApplication] setStatusBarHidden:YES];
-    //    [[UIApplication sharedApplication] setStatusBarOrientation:UIInterfaceOrientationLandscapeLeft animated:NO];
     
 #ifdef DEBUG
     [IJKFFMoviePlayerController setLogReport:YES];
@@ -153,30 +152,18 @@ static NebulaClientCtx *clientCtx;
     [IJKFFMoviePlayerController setLogReport:NO];
     [IJKFFMoviePlayerController setLogLevel:k_IJK_LOG_INFO];
 #endif
-    
-    [IJKFFMoviePlayerController checkIfFFmpegVersionMatch:YES];
-    // [IJKFFMoviePlayerController checkIfPlayerVersionMatch:YES major:1 minor:0 micro:0];
-    
+        
     IJKFFOptions *options = [IJKFFOptions optionsByDefault];
-    if (!DEMO_OBJECT_TRACKING) {
-        [options setOptionIntValue:1 forKey:@"videotoolbox" ofCategory:kIJKFFOptionCategoryPlayer];
-    }
+    [options setOptionIntValue:1 forKey:@"videotoolbox" ofCategory:kIJKFFOptionCategoryPlayer];
+
     // Enable acoustic echo cancelling.
-    [options setOptionIntValue:1 forKey:@"enable-aec" ofCategory:kIJKFFOptionCategoryPlayer];
-    // Disable video decoder multithread delaying.
-    [options setOptionIntValue:1 forKey:@"disable-multithread-delaying" ofCategory:kIJKFFOptionCategoryPlayer];
+    // [options setOptionIntValue:1 forKey:@"enable-aec" ofCategory:kIJKFFOptionCategoryPlayer];
 
     if (DEMO_OBJECT_TRACKING) {
         [options setOptionIntValue:1 forKey:@"enable-get-frame" ofCategory:kIJKFFOptionCategoryPlayer];
     }
 
-    if (DEMO_OBJECT_TRACKING) {
-        DEMO_AVAPI4 = true;
-    }
-    if (DEMO_AVTECH_SEEK) {
-        [options setFormatOptionIntValue:1 forKey:@"avtech_seek"];
-        [options setFormatOptionValue:@"TUTK Application" forKey:@"user-agent"];
-    }
+    TUTK_SDK_Set_License_Key(IOTC_LICENSE_KEY);
     if (DEMO_AVAPI3) {
         IOTC_Initialize2(0);
         avInitialize(3);
@@ -191,14 +178,15 @@ static NebulaClientCtx *clientCtx;
         avConfig.resend = 1;
         avConfig.timeout_sec = 20;
         avConfig.auth_type = 0;
-        avConfig.security_mode = 0;
+        avConfig.security_mode = 2;
         avConfig.account_or_identity = AVAPI3_ACCOUNT;
         avConfig.password_or_token = AVAPI3_PASSWORD;
         self.avIndex = avClientStartEx(&avConfig, &avOutConfig);
-        [options setFormatOptionIntValue:(int64_t)&avAPIs forKey:@"av_api3"];
+        [options setFormatOptionIntValue:(int64_t)&avAPI3s forKey:@"av_api3"];
+        [options setFormatOptionIntValue:2 forKey:@"dtls"];
         char url[512];
         sprintf(url, AVAPI3_PLAYBACK_URL, self.sid, AVAPI_CHANNEL, AVAPI3_ACCOUNT, AVAPI3_PASSWORD, AVAPI3_START_TIME, self.avIndex);
-        sprintf(url, AVAPI3_LIVE_URL, AVAPI_CHANNEL, self.avIndex);
+        sprintf(url, AVAPI3_LIVE_URL, self.avIndex);
         self.url = [NSURL URLWithString:@(url)];
     }
     if (DEMO_AVAPI4) {
@@ -208,15 +196,7 @@ static NebulaClientCtx *clientCtx;
         Nebula_Initialize();
         
         Nebula_Client_New_From_String(AVAPI4_UDID, AVAPI4_CREDENTIAL, &clientCtx);
-        Nebula_Client_Connect(clientCtx, loginCallback);
-        
-        int ret = 0;
-        while (ret != -40019)
-        {
-            ret = Nebula_Client_Wakeup_Device(clientCtx, 30000, NULL);
-        }
-        ret = IOTC_Client_Connect_By_Nebula(clientCtx, AVAPI4_AMTOKEN, AVAPI4_REALM, 30000, NULL);
-        self.sid = ret;
+        self.sid = IOTC_Client_Connect_By_Nebula(clientCtx, AVAPI4_DMTOKEN, AVAPI4_REALM, 30000, NULL);
         
         AVClientStartInConfig avConfig;
         AVClientStartOutConfig avOutConfig;
@@ -226,37 +206,56 @@ static NebulaClientCtx *clientCtx;
         avConfig.iotc_channel_id = AVAPI_CHANNEL;
         avConfig.resend = 1;
         avConfig.auth_type = 2;
-        avConfig.security_mode = 0;
+        avConfig.security_mode = 2;
         avConfig.timeout_sec = 20;
         avConfig.account_or_identity = "";
         avConfig.password_or_token = "";
         self.avIndex = avClientStartEx(&avConfig, &avOutConfig);
-        
-        //
-        // <HACK> send startVideo command first, otherwise playbackControl command would failed
-        //
-        int *response;
-        const char *req = "{\"func\":\"startVideo\",\"args\":{\"value\":false}}";
-        avSendJSONCtrlRequest(self.avIndex, req, &response, 10);
-        avFreeJSONCtrlResponse(response);
-        
+                
         [options setFormatOptionIntValue:(int64_t)&avAPIs forKey:@"av_api4"];
+        [options setFormatOptionIntValue:(int64_t)&avAPIs forKey:@"avapidec_av_api4"];
+        [options setFormatOptionIntValue:2 forKey:@"dtls"];
         char url[512];
         sprintf(url, AVAPI4_PLAYBACK_URL, self.sid, 1, AVAPI4_FILENAME, self.avIndex);
-        sprintf(url, AVAPI4_LIVE_URL, AVAPI_CHANNEL, self.avIndex);
+        sprintf(url, AVAPI4_LIVE_URL, self.avIndex);
         self.url = [NSURL URLWithString:@(url)];
     }
     if (DEMO_WEBRTC) {
         Nebula_Initialize();
-        self.player = [[IJKFFMoviePlayerController alloc]
-                       initWithWebRTC:@(WEBRTC_UDID)
-                       withCredential:@(WEBRTC_CREDENTIAL)
-                       withAmToken:@(WEBRTC_AMTOKEN)
-                       withRealm:@(WEBRTC_REALM)
-                       withNebulaAPI:&nebulaAPIs
-                       withOptions:options];
+        NebulaClientCtx *ctx;
+        Nebula_Client_New_From_String(WEBRTC_UDID, WEBRTC_CREDENTIAL, &ctx);
+        Nebula_Client_Connect(ctx, nebulaClientConnectStateFn, 10000, NULL);
+        nebulaAPIs.ctx = (long)ctx;
+        self.player = [[IJKFFMoviePlayerController alloc] initWithOptions:options];
+
+        long webrtc_id = [self.player startWebRTC:@(WEBRTC_DMTOKEN)
+                                    andRealm:@(WEBRTC_REALM)
+                                     andNebulaAPI:&nebulaAPIs
+                                    andStreamType:IJKStreamTypeAudioAndVideo
+                                     andStartTime:IJK_NOEVENT_VALUE
+                                      andFileName:nil
+                                     andChannelId:IJK_NOCHANNEL_VALUE
+                                andIsQuickConnect:true];
+        if (webrtc_id == INVALID_WEBRTC_ID) {
+            NSLog(@"start webrtc failed!");
+            return;
+        }
+        NSString *url = [NSString stringWithFormat:@"webrtc://tutk.com?pc_id=%ld", webrtc_id];
+        [self.player setVideoPath:url];
+        [self.player setWebRTCMic:YES];
     }else {
         self.player = [[IJKFFMoviePlayerController alloc] initWithContentURL:self.url withOptions:options];
+    }
+
+    if (DEMO_TOMP4) {
+        NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+        NSString *filePath = [[paths objectAtIndex:0] stringByAppendingPathComponent:@"out.mp4"];
+        [self.player toMp4:filePath andOnComplete:^(int result){
+            if (result < 0) {
+                NSLog(@"download fail! result[%d]", result);
+            }
+        }];
+        return;
     }
 
     self.player.view.autoresizingMask = UIViewAutoresizingFlexibleWidth|UIViewAutoresizingFlexibleHeight;
@@ -266,7 +265,9 @@ static NebulaClientCtx *clientCtx;
     
     self.view.autoresizesSubviews = YES;
     [self.view addSubview:self.player.view];
-    [self.view addSubview:self.mediaControl];
+    if (!DEMO_SCALE_GESTURE) {
+        [self.view addSubview:self.mediaControl];
+    }
     
     self.mediaControl.delegatePlayer = self.player;
     
@@ -277,12 +278,6 @@ static NebulaClientCtx *clientCtx;
         [self.view addSubview:self.image];
         self.subImage = [[UIImageView alloc] initWithFrame: CGRectMake(0,0,320,180)];
         [self.view addSubview:self.subImage];
-    }
-
-    if (DEMO_TOMP4) {
-        NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-        NSString *filePath = [[paths objectAtIndex:0] stringByAppendingPathComponent:@"out.mp4"];
-        [self.player toMp4:filePath];
     }
 }
 
@@ -307,16 +302,11 @@ static NebulaClientCtx *clientCtx;
     if (DEMO_AVAPI3) {
         avClientStop(self.avIndex);
         IOTC_Session_Close(self.sid);
-        avDeInitialize();
-        IOTC_DeInitialize();
     }
     if (DEMO_AVAPI4) {
         Nebula_Client_Delete(clientCtx);
         avClientStop(self.avIndex);
         IOTC_Session_Close(self.sid);
-        avDeInitialize();
-        IOTC_DeInitialize();
-        Nebula_DeInitialize();
     }
 }
 
@@ -420,9 +410,7 @@ static NebulaClientCtx *clientCtx;
 
 - (void)moviePlayBackDidFinish:(NSNotification*)notification
 {
-    //    MPMovieFinishReasonPlaybackEnded,
-    //    MPMovieFinishReasonPlaybackError,
-    //    MPMovieFinishReasonUserExited
+    int error;
     int reason = [[[notification userInfo] valueForKey:IJKMPMoviePlayerPlaybackDidFinishReasonUserInfoKey] intValue];
     
     switch (reason)
@@ -436,7 +424,11 @@ static NebulaClientCtx *clientCtx;
             break;
             
         case IJKMPMovieFinishReasonPlaybackError:
-            NSLog(@"playbackStateDidChange: IJKMPMovieFinishReasonPlaybackError: %d\n", reason);
+            error = [[[notification userInfo] valueForKey:@"error"] intValue];
+            NSLog(@"playbackStateDidChange: IJKMPMovieFinishReasonPlaybackError: %d\n", error);
+            if (error == ERROR_HTTP_UNAUTHORIZED) {
+                // do something for 401 error
+            }
             break;
             
         default:
@@ -461,12 +453,7 @@ static NebulaClientCtx *clientCtx;
             [self.player stopVideoRecord];
         });
     }
-    
-    if (DEMO_AVTECH_SEEK) {
-        long seek_time = [[NSDate date] timeIntervalSince1970] - 60 * 60;
-        [self.player setCurrentPlaybackTime:seek_time];
-    }
-    
+        
     if (DEMO_OBJECT_TRACKING) {
         self.timer = [NSTimer scheduledTimerWithTimeInterval: 0.05
                                          target: self
@@ -485,13 +472,6 @@ static NebulaClientCtx *clientCtx;
 
 - (void)moviePlayBackStateDidChange:(NSNotification*)notification
 {
-    //    MPMoviePlaybackStateStopped,
-    //    MPMoviePlaybackStatePlaying,
-    //    MPMoviePlaybackStatePaused,
-    //    MPMoviePlaybackStateInterrupted,
-    //    MPMoviePlaybackStateSeekingForward,
-    //    MPMoviePlaybackStateSeekingBackward
-    
     switch (_player.playbackState)
     {
         case IJKMPMoviePlaybackStateStopped: {

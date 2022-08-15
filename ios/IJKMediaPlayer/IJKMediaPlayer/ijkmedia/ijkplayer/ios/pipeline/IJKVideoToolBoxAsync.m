@@ -675,10 +675,6 @@ static int decode_video_internal(Ijk_VideoToolBox_Opaque* context, AVCodecContex
         goto failed;
     }
 
-    if (avpkt->flags & AV_PKT_FLAG_NEW_SEG) {
-        context->new_seg_flag = true;
-    }
-
     sample_info = sample_info_peek(context);
     if (!sample_info) {
         ALOGE("%s, failed to peek frame_info\n", __FUNCTION__);

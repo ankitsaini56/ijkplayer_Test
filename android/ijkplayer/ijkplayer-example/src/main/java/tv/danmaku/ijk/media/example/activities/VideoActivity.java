@@ -32,6 +32,7 @@ import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import com.tutk.IOTC.AVAPIs;
 import com.tutk.IOTC.IOTCAPIs;
@@ -53,34 +54,39 @@ import tv.danmaku.ijk.media.player.widget.media.IjkVideoView;
 public class VideoActivity extends AppCompatActivity
 {
     private static final String TAG = "VideoActivity";
-    private static final String VIDEO_RECORD_PATH = "/sdcard/record.mp4";
-    private static final String AVTECH_RTSP_URL = "YOUR_RTSP_URL";
-    private static final String AVAPI3_UID = "YOUR_UID";
-    private static final String AVAPI3_ACCOUNT = "YOUR_ACCOUNT";
-    private static final String AVAPI3_PASSWORD = "YOUR_PASSWORD";
-    private static final String AVAPI4_UDID = "YOUR_UDID";
-    private static final String AVAPI4_CREDENTIAL = "YOUR_CREDENTIAL";
-    private static final String AVAPI4_AMTOKEN = "YOUR_AM_TOKEN";
-    private static final String AVAPI4_REALM = "YOUR_REALM";
-    private static final String AVAPI4_FILENAME = "YOUR_FILENAME";
-    private static final String WEBRTC_UDID = "YOUR_UDID";
-    private static final String WEBRTC_CREDENTIAL = "YOUR_CREDENTIAL";
-    private static final String WEBRTC_AMTOKEN = "YOUR_AM_TOKEN";
-    private static final String WEBRTC_REALM = "YOUR_REALM";
-    private static final String WEBRTC_STATE = "YOUR_STATE";
-    private static final String WEBRTC_UDID_2 = "YOUR_UDID";
-    private static final String WEBRTC_CREDENTIAL_2 = "YOUR_CREDENTIAL";
+    private static final String VIDEO_RECORD_PATH = "/sdcard/Documents/record.mp4";
+    private static final String IOTC_LICENSE_KEY = "your_license_key";
+    private static final String AVAPI3_UID = "your_uid";
+    private static final String AVAPI3_ACCOUNT = "your_account";
+    private static final String AVAPI3_PASSWORD = "your_password";
+    private static final String AVAPI4_UDID = "your_uid";
+    private static final String AVAPI4_CREDENTIAL = "your_credential";
+    private static final String AVAPI4_DMTOKEN = "your_dmtoken";
+    private static final String AVAPI4_REALM = "your_realm";
+    private static final String AVAPI4_FILENAME = "20200518013511";
+    private static final String WEBRTC_UDID = "your_udid";
+    private static final String WEBRTC_CREDENTIAL = "your_credential";
+    private static final String WEBRTC_DMTOKEN = "your_dmtoken";
+    private static final String WEBRTC_REALM = "your_realm";
+    private static final String WEBRTC_UDID_2 = "your_udid";
+    private static final String WEBRTC_CREDENTIAL_2 = "your_credential";
 
     private static final int AVAPI_CHANNEL = 0;
     private static final int MSG_DRAW_OBJECT_TRACKING = 1001;
+    private static final int MSG_UPDATE_CACHE_INFO = 1002;
 
     private String mVideoPath;
     private String mVideoPath2;
+    private String mUdid;
+    private String mCredential;
+    private String mDmToken;
+    private String mRealm;
     private AndroidMediaController mMediaController;
     private IjkVideoView mVideoView;
     private IjkVideoView mVideoView2;
     private IjkTextureView mTextureVideo;
     private IjkTextureView mTextureSubVideo;
+    private TextView mCacheInfo;
     private boolean mDemoVideoRecord = false;
     private boolean mDemoAvtechSeek = false;
     private boolean mDemoAVAPI3 = false;
@@ -88,6 +94,7 @@ public class VideoActivity extends AppCompatActivity
     private boolean mDemoWebRTC = false;
     private boolean mDemoObjectTracking = false;
     private boolean mDemoToMp4 = false;
+    private boolean mDemoPlayRawMp4 = false;
     private int mSeesionId;
     private int mAvIndex;
     private long [] mClientCtx = new long[1];
@@ -98,9 +105,20 @@ public class VideoActivity extends AppCompatActivity
         @Override
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
-            IjkFrame frame = mVideoView.getFrame();
-            mVideoView.draw(frame, mTextureVideo, mTextureSubVideo, IjkVideoView.Mode.PIP);
-            sendEmptyMessageDelayed(MSG_DRAW_OBJECT_TRACKING, 50);
+            switch(msg.what) {
+                case MSG_DRAW_OBJECT_TRACKING:
+                    IjkFrame frame = mVideoView.getFrame();
+                    mVideoView.draw(frame, mTextureVideo, mTextureSubVideo, IjkVideoView.Mode.PIP);
+                    sendEmptyMessageDelayed(MSG_DRAW_OBJECT_TRACKING, 50);
+                    break;
+                case MSG_UPDATE_CACHE_INFO:
+                    long v = mVideoView.getVideoCachedDuration();
+                    long a = mVideoView.getAudioCachedDuration();
+                    String info = "a/v cache (msec): " + a + " / " + v;
+                    mCacheInfo.setText(info);
+                    sendEmptyMessageDelayed(MSG_UPDATE_CACHE_INFO, 1000);
+                    break;
+            }
         }
     };
 
@@ -121,6 +139,15 @@ public class VideoActivity extends AppCompatActivity
         context.startActivity(newIntent(context, videoPath, videoTitle));
     }
 
+    public static void intentTo(Context context, String udid, String credential, String dmToken, String realm) {
+        Intent intent = new Intent(context, VideoActivity.class);
+        intent.putExtra("udid", udid);
+        intent.putExtra("credential", credential);
+        intent.putExtra("dmToken", dmToken);
+        intent.putExtra("realm", realm);
+        context.startActivity(intent);
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -130,6 +157,10 @@ public class VideoActivity extends AppCompatActivity
         setSupportActionBar(toolbar);
 
         mVideoPath = getIntent().getStringExtra("videoPath");
+        mUdid = getIntent().getStringExtra("udid");
+        mCredential = getIntent().getStringExtra("credential");
+        mDmToken = getIntent().getStringExtra("dmToken");
+        mRealm = getIntent().getStringExtra("realm");
 
         ActionBar actionBar = getSupportActionBar();
         mMediaController = new AndroidMediaController(this, false);
@@ -145,17 +176,11 @@ public class VideoActivity extends AppCompatActivity
         }
         mTextureVideo = (IjkTextureView) findViewById(R.id.texture_video);
         mTextureSubVideo = (IjkTextureView) findViewById(R.id.texture_subvideo);
+        mCacheInfo = (TextView) findViewById(R.id.cache_info);
 
         if (mDemoToMp4) {
             mVideoView.toMp4(mVideoPath, VIDEO_RECORD_PATH, result -> Log.i(TAG, "mp4 generated"));
             return;
-        }
-
-        mVideoView.enableAEC();
-        mVideoView.disableMultithreadDelaying();
-        if(mDemoWebRTC && mWebRTCClientCount == 2) {
-            mVideoView2.enableAEC();
-            mVideoView2.disableMultithreadDelaying();
         }
 
         if (mDemoObjectTracking) {
@@ -163,9 +188,9 @@ public class VideoActivity extends AppCompatActivity
         }
         if (mDemoAvtechSeek) {
             mVideoView.enableAvtechSeek();
-            mVideoPath = AVTECH_RTSP_URL;
         }
 
+        TUTKGlobalAPIs.TUTK_SDK_Set_License_Key(IOTC_LICENSE_KEY);
         if (mDemoAVAPI3) {
             IOTCAPIs.IOTC_Initialize2(0);
             AVAPIs.avInitialize(3);
@@ -182,7 +207,7 @@ public class VideoActivity extends AppCompatActivity
             avConfig.iotc_channel_id = AVAPI_CHANNEL;
             avConfig.resend = 1;
             avConfig.auth_type = 0;
-            avConfig.security_mode = 0;
+            avConfig.security_mode = 2;
             avConfig.timeout_sec = 20;
             avConfig.iotc_session_id = mSeesionId;
             avConfig.account_or_identity = AVAPI3_ACCOUNT;
@@ -192,12 +217,16 @@ public class VideoActivity extends AppCompatActivity
             //
             // <INFO>: If live url channel is not 0, need to add account, password, and session-id parameters to url.
             //
-            final String AVAPI_LIVE_URL = "avapi://tutk.com/live?channel=" + AVAPI_CHANNEL + "&av-index=" + mAvIndex;
+            final String AVAPI_LIVE_URL = "avapi://tutk.com/live?av-index=" + mAvIndex;
             final String AVAPI_PLAYBACK_URL = "avapi://tutk.com/playback?session-id=" + mSeesionId + "&channel=" + AVAPI_CHANNEL +
                     "&account=" + AVAPI3_ACCOUNT + "&password=" + AVAPI3_PASSWORD + "&start-time=1580882907&av-index=" + mAvIndex;
             mVideoPath = AVAPI_LIVE_URL;
         }
-        if (mDemoAVAPI4) {
+        if (mDemoAVAPI4 || mUdid != null) {
+            String udid = mUdid != null ? mUdid : AVAPI4_UDID;
+            String credential = mCredential != null ? mCredential : AVAPI4_CREDENTIAL;
+            String dmToken = mDmToken != null ? mDmToken : AVAPI4_DMTOKEN;
+            String realm = mRealm != null ? mRealm : AVAPI4_REALM;
             //
             // <INFO> set region to CN if your device is added to CN region
             //
@@ -209,16 +238,9 @@ public class VideoActivity extends AppCompatActivity
             long [] avAPIs = new long[1];
             AVAPIs.avGetAPIs(avAPIs);
             mVideoView.setAVAPI(avAPIs[0], 4);
-            mAvIndex = getAvIndex(AVAPI4_UDID, AVAPI4_CREDENTIAL);
+            mAvIndex = getAvIndex(udid, credential, dmToken, realm);
 
-            //
-            // <HACK> send startVideo command first, otherwise playbackControl command would failed
-            //
-            String [] response = new String[1];
-            String req = "{\"func\":\"startVideo\",\"args\":{\"value\":false}}";
-            AVAPIs.avSendJSONCtrlRequest(mAvIndex, req, response, 10);
-
-            final String AVAPI_LIVE_URL = "avapi://tutk.com/live?channel=" + AVAPI_CHANNEL + "&av-index=" + mAvIndex;
+            final String AVAPI_LIVE_URL = "avapi://tutk.com/live?av-index=" + mAvIndex;
             final String AVAPI_PLAYBACK_URL = "avapi://tutk.com/playback?session-id=" + mSeesionId + "&channel=1" +
                     "&filename=" + AVAPI4_FILENAME + "&av-index=" + mAvIndex;
             mVideoPath = AVAPI_LIVE_URL;
@@ -226,18 +248,33 @@ public class VideoActivity extends AppCompatActivity
         if(mDemoWebRTC) {
             NebulaAPIs.Nebula_Initialize();
 
-            NebulaParameter param = new NebulaParameter(WEBRTC_UDID, WEBRTC_CREDENTIAL, WEBRTC_AMTOKEN, WEBRTC_REALM, WEBRTC_STATE);
-            long id = mVideoView.startWebRTC(getApplicationContext(), getDisplayMetrics(), new NebulaImp(), param);
-            if(id > 0) {
+            long [] ctx = new long[1];
+            NebulaAPIs.Nebula_Client_New_From_String(WEBRTC_UDID, WEBRTC_CREDENTIAL, ctx);
+            NebulaAPIs.Nebula_Client_Connect(ctx[0], new NebulaAPIs.NebulaClientConnectStateFn() {
+                @Override
+                public void connect_state_handler(long client_ctx, int state) {
+                }
+            }, 30000, null);
+            NebulaParameter param = new NebulaParameter(WEBRTC_DMTOKEN, WEBRTC_REALM, 1, IjkVideoView.STREAM_TYPE_AUDIO_AND_VIDEO, null, null, null);
+            long id = mVideoView.startWebRTC(getApplicationContext(), getDisplayMetrics(), new NebulaImp(ctx[0]), param);
+            if(id != IjkVideoView.INVALID_WEBRTC_ID) {
                 mVideoPath = "webrtc://tutk.com?pc_id=" + id;
             }else {
                 Log.e(TAG, "StartWebRTC failed");
             }
+            mVideoView.setWebRTCMic(true);
 
             if(mWebRTCClientCount == 2) {
-                param = new NebulaParameter(WEBRTC_UDID_2, WEBRTC_CREDENTIAL_2, WEBRTC_AMTOKEN, WEBRTC_REALM, WEBRTC_STATE);
-                id = mVideoView2.startWebRTC(getApplicationContext(), getDisplayMetrics(), new NebulaImp(), param);
-                if (id > 0) {
+                long [] ctx2 = new long[1];
+                NebulaAPIs.Nebula_Client_New_From_String(WEBRTC_UDID_2, WEBRTC_CREDENTIAL_2, ctx2);
+                NebulaAPIs.Nebula_Client_Connect(ctx2[0], new NebulaAPIs.NebulaClientConnectStateFn() {
+                    @Override
+                    public void connect_state_handler(long client_ctx, int state) {
+                    }
+                }, 30000, null);
+                param = new NebulaParameter(WEBRTC_DMTOKEN, WEBRTC_REALM);
+                id = mVideoView2.startWebRTC(getApplicationContext(), getDisplayMetrics(), new NebulaImp(ctx2[0]), param);
+                if (id != IjkVideoView.INVALID_WEBRTC_ID) {
                     mVideoPath2 = "webrtc://tutk.com?pc_id=" + id;
                 } else {
                     Log.e(TAG, "StartWebRTC failed");
@@ -254,6 +291,10 @@ public class VideoActivity extends AppCompatActivity
             mVideoView.enableMediaCodec();
             mVideoView2.enableMediaCodec();
         }
+        if (mDemoPlayRawMp4) {
+            mVideoPath = "android.resource://tv.danmaku.ijk.media.example/" + R.raw.h265;
+        }
+
         mVideoView.setVideoPath(mVideoPath);
         mVideoView.start();
         mVideoView.setSpeed(1.0f);
@@ -270,6 +311,7 @@ public class VideoActivity extends AppCompatActivity
                 if (mDemoObjectTracking) {
                     mHandler.sendEmptyMessageDelayed(MSG_DRAW_OBJECT_TRACKING, 0);
                 }
+                mHandler.sendEmptyMessageDelayed(MSG_UPDATE_CACHE_INFO, 0);
 
                 //
                 // <INFO>: video record only works well for rtsp source
@@ -320,17 +362,10 @@ public class VideoActivity extends AppCompatActivity
         });
     }
 
-    private int getAvIndex(String udid, String certificate) {
+    private int getAvIndex(String udid, String certificate, String dmToken, String realm) {
         NebulaAPIs.Nebula_Client_New_From_String(udid, certificate, mClientCtx);
-        NebulaAPIs.Nebula_Client_Connect(mClientCtx[0], mCB);
-
-        int ret = 0;
-        while (ret != -40019) {
-            ret = NebulaAPIs.Nebula_Client_Wakeup_Device(mClientCtx[0], 30000, null);
-        }
-
-        ret = IOTCAPIs.IOTC_Client_Connect_By_Nebula(mClientCtx[0], AVAPI4_AMTOKEN, AVAPI4_REALM, 30000, null);
-        mSeesionId = ret;
+        mSeesionId = IOTCAPIs.IOTC_Client_Connect_By_Nebula(mClientCtx[0], dmToken, realm, 30000, null);
+        Log.d(TAG, "IOTC_Client_Connect_By_Nebula ret: " + mSeesionId);
 
         St_AVClientStartInConfig avConfig = new St_AVClientStartInConfig();
         St_AVClientStartOutConfig avOutConfig = new St_AVClientStartOutConfig();
@@ -338,7 +373,7 @@ public class VideoActivity extends AppCompatActivity
         avConfig.iotc_session_id = mSeesionId;
         avConfig.resend = 1;
         avConfig.auth_type = 2;
-        avConfig.security_mode = 0;
+        avConfig.security_mode = 2;
         avConfig.timeout_sec = 20;
         return AVAPIs.avClientStartEx(avConfig, avOutConfig);
     }
@@ -358,16 +393,11 @@ public class VideoActivity extends AppCompatActivity
             AVAPIs.avClientExit(mAvIndex, mSeesionId);
             AVAPIs.avClientStop(mAvIndex);
             IOTCAPIs.IOTC_Session_Close(mSeesionId);
-            AVAPIs.avDeInitialize();
-            IOTCAPIs.IOTC_DeInitialize();
         }
         if (mDemoAVAPI4) {
             NebulaAPIs.Nebula_Client_Delete(mClientCtx[0]);
             AVAPIs.avClientStop(mAvIndex);
             IOTCAPIs.IOTC_Session_Close(mSeesionId);
-            AVAPIs.avDeInitialize();
-            IOTCAPIs.IOTC_DeInitialize();
-            NebulaAPIs.Nebula_DeInitialize();
         }
         if(mDemoWebRTC) {
             mVideoView.stopWebRTC();

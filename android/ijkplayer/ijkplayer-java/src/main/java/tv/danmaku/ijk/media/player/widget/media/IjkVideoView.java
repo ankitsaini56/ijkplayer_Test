@@ -17,8 +17,11 @@
 
 package tv.danmaku.ijk.media.player.widget.media;
 
+import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
+import android.content.ContentResolver;
 import android.content.Context;
+import android.content.res.AssetFileDescriptor;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -31,16 +34,19 @@ import android.os.Build;
 import android.os.ConditionVariable;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.os.Message;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.UiThread;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.GestureDetector;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.PixelCopy;
+import android.view.ScaleGestureDetector;
 import android.view.SurfaceView;
 import android.view.View;
 import android.widget.FrameLayout;
@@ -72,6 +78,7 @@ import tv.danmaku.ijk.media.example.webrtc.NebulaRTCClient;
 import tv.danmaku.ijk.media.player.IMediaPlayer;
 import tv.danmaku.ijk.media.player.IjkMediaPlayer;
 import tv.danmaku.ijk.media.player.IjkTimedText;
+import tv.danmaku.ijk.media.player.RawDataSourceProvider;
 import tv.danmaku.ijk.media.player.misc.ITrackInfo;
 import tv.danmaku.ijk.media.player.misc.IjkFrame;
 import tv.danmaku.ijk.media.player.misc.ObjectTrackingInfo;
@@ -88,6 +95,10 @@ public class IjkVideoView extends FrameLayout implements
         AppRTCClient.SignalingEvents,
         PeerConnectionClient.PeerConnectionEvents {
 
+    public interface Listener {
+        void onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY);
+    }
+
     public enum Mode {
         EPAN,
         PIP,
@@ -95,34 +106,48 @@ public class IjkVideoView extends FrameLayout implements
     }
 
     private static String TAG = "IjkVideoView";
-    private static String VERSION = "0.6.3";
+    private static String VERSION = "0.9.18";
 
     // settable by the client
     private Uri mUri = null;
 
     // all possible internal states
-    private static final int STATE_ERROR = -1;
-    private static final int STATE_IDLE = 0;
-    private static final int STATE_PREPARING = 1;
-    private static final int STATE_PREPARED = 2;
-    private static final int STATE_PLAYING = 3;
-    private static final int STATE_PAUSED = 4;
-    private static final int STATE_PLAYBACK_COMPLETED = 5;
+    public static final int ERROR_HTTP_UNAUTHORIZED = ERRTAG((byte)0xF8, '4', '0', '1');
+    public static final int STATE_ERROR = -1;
+    public static final int STATE_IDLE = 0;
+    public static final int STATE_PREPARING = 1;
+    public static final int STATE_PREPARED = 2;
+    public static final int STATE_PLAYING = 3;
+    public static final int STATE_PAUSED = 4;
+    public static final int STATE_PLAYBACK_COMPLETED = 5;
+    public static final long INVALID_WEBRTC_ID = 0;
+    public static final String STREAM_TYPE_AUDIO_AND_VIDEO = "audioAndVideo";
+    public static final String STREAM_TYPE_AUDIO_AND_SUBVIDEO = "audioAndSubVideo";
     private static final int MIN_DISTANCE = 5;
     private static final float TRACKING_SPEED = 0.05f;
     private static final int TRACKING_THRESHOLD_IN_SECONDS = 3;
+    private static final int AV_SECURITY_SIMPLE = 0;
+    private static final int AV_SECURITY_DTLS = 1;
+    private static final int AV_SECURITY_AUTO = 2;
+    private static final int MSG_CHECK = 1001;
+    private static final int MSG_UPDATE_UI = 1002;
+    private static final int MSG_START = 1003;
+    private static final float MIN_SCALE = 1.f;
+    private static final float MAX_SCALE = 3.f;
+    private static final long IGNORE_THRESHOLD_IN_MS = 150;
+    private static final float PAINT_TEXT_SIZE_IN_PX = 50.0f;
 
     // mCurrentState is a VideoView object's current state.
     // mTargetState is the state that a method caller intends to reach.
     // For instance, regardless the VideoView object's current state,
     // calling pause() intends to bring the object to a target state
     // of STATE_PAUSED.
-    private int mCurrentState = STATE_IDLE;
+    public int mCurrentState = STATE_IDLE;
     private int mTargetState = STATE_IDLE;
 
     // All the stuff we need for playing and showing a video
     private IRenderView.ISurfaceHolder mSurfaceHolder = null;
-    private IMediaPlayer mMediaPlayer = null;
+    public IMediaPlayer mMediaPlayer = null;
     private int mVideoWidth;
     private int mVideoHeight;
     private int mSurfaceWidth;
@@ -135,25 +160,35 @@ public class IjkVideoView extends FrameLayout implements
     private IMediaPlayer.OnErrorListener mOnErrorListener;
     private IMediaPlayer.OnInfoListener mOnInfoListener;
     private IMediaPlayer.OnSeekCompleteListener mOnSeekCompleteListener;
-    private IMediaPlayer.OnCompleteListener mOnCompleteListener;
+    private IMediaPlayer.DownloadListener mDownloadListener;
     private long mSeekWhenPrepared;  // recording the seek position while preparing
 
     private boolean mUsingMediaCodec = false;
-    private String mPixelFormat = "fcc-rv32";
+    private String mPixelFormat = "fcc-_es2";
     private float mSpeed = 1.0f;
     private int mEnableGetFrame = 0;
-    private int mEnableAEC = 0;
     private int mEnableAvtechSeek = 0;
     private long mAvAPIs3 = 0;
     private long mAvAPIs4 = 0;
+    private int mDtls = AV_SECURITY_AUTO;
     private long mWebRTCAPIs = 0;
     private Map<String, String> mHttpHeaders = null;
     private String mUserAgent = null;
     private boolean mEnableOpenVideoOnSurfaceCreate = true;
-    private int mDisableMultithreadDelaying = 0;
+    private int mCodecThreads = 0;
     private int mAccurateSeek = 1;
     private int mLowDelay = 0;
+    private int mLowDelayStartThreshold = 0;
+    private int mLowDelayStopThreshold = 0;
     private String mMp4Path = null;
+    private int mVideoRecordTimeout = 0;
+    private long mVideoRecordStartTime = 0;
+    private int mMaxBufferSize = -1;
+    private int mHackClaireControl = 0;
+    private int mEasyMode = 0;
+    private int mBufferThreshold = 0;
+    private int mAvapiTimeout = 0;
+    private boolean mDebug = true;
 
     private Context mAppContext;
     private IRenderView mRenderView;
@@ -175,8 +210,100 @@ public class IjkVideoView extends FrameLayout implements
     private final ProxyVideoSink remoteProxyRenderer = new ProxyVideoSink();
     private AppRTCClient.RoomConnectionParameters roomConnectionParameters;
     private long callStartedTimeMs;
-    private long mWebrtcId = 0;
+    private long mWebrtcId = -1;
     private ConditionVariable cond;
+    private ScaleGestureDetector mScaleDetector;
+    private GestureDetector mDetector;
+    private float mScaleFactor = 1.f;
+    private float mOffsetX = 0.f;
+    private float mOffsetY = 0.f;
+    private int mOriginalWidth;
+    private int mOriginalHeight;
+    private float mMaxScale = MAX_SCALE;
+    private boolean mOnScaling = false;
+    private long mScaleOrDragEndTime = 0;
+    private Listener mListener = null;
+    private HandlerThread mHandlerThread = null;
+    private Handler mBackgoundHandler = null;
+    private Object mWebRTClock = new Object();
+
+    private static int ERRTAG( byte a, char b, char c, char d) {
+        int tag = (a & 0xFF) + ((b & 0xFF) << 8) + ((c & 0xFF) << 16) + ((d & 0xFF) << 24);
+        return -tag;
+    }
+
+    @SuppressLint("HandlerLeak")
+    private Handler mHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            if (msg.what == MSG_UPDATE_UI) {
+                requestLayout();
+                invalidate();
+                return;
+            }
+
+            if (msg.what != MSG_CHECK) {
+                return;
+            }
+
+            long curTime = System.currentTimeMillis();
+            if (curTime - mVideoRecordStartTime >= mVideoRecordTimeout * 1000L) {
+                stopVideoRecord();
+                return;
+            }
+
+            sendEmptyMessageDelayed(MSG_CHECK, 1000);
+        }
+    };
+
+    private final ScaleGestureDetector.SimpleOnScaleGestureListener mScaleListener = new ScaleGestureDetector.SimpleOnScaleGestureListener() {
+        @Override
+        public boolean onScale(ScaleGestureDetector detector) {
+            mScaleFactor *= detector.getScaleFactor();
+            mScaleFactor = Math.max(MIN_SCALE, Math.min(mScaleFactor, mMaxScale));
+            scale(mScaleFactor);
+            invalidate();
+            return true;
+        }
+
+        @Override
+        public boolean onScaleBegin(ScaleGestureDetector detector) {
+            mOnScaling = true;
+            updateRenderViewSize();
+            return true;
+        }
+
+        @Override
+        public void onScaleEnd(ScaleGestureDetector detector) {
+            super.onScaleEnd(detector);
+            mOnScaling = false;
+        }
+    };
+
+    private final GestureDetector.SimpleOnGestureListener mGestureListener = new GestureDetector.SimpleOnGestureListener() {
+        @Override
+        public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+            updateRenderViewSize();
+            mOffsetX -= distanceX;
+            mOffsetY -= distanceY;
+            View view = mRenderView.getView();
+            int maxX = (int)(((mScaleFactor - 1.0f) / 2.0f) * mOriginalWidth);
+            int maxY = (int)(((mScaleFactor - 1.0f) / 2.0f) * mOriginalHeight);
+            mOffsetX = Math.max(-maxX, Math.min(mOffsetX, maxX));
+            mOffsetY = Math.max(-maxY, Math.min(mOffsetY, maxY));
+            view.setTranslationX(mOffsetX);
+            view.setTranslationY(mOffsetY);
+            return true;
+        }
+
+        @Override
+        public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+            if (mListener != null) {
+                mListener.onFling(e1, e2, velocityX, velocityY);
+            }
+            return true;
+        }
+    };
 
     public IjkVideoView(Context context) {
         super(context);
@@ -199,8 +326,8 @@ public class IjkVideoView extends FrameLayout implements
         initVideoView(context);
     }
 
-    public void setMicEnabled(boolean enable) {
-        if(peerConnectionClient != null) {
+    public void setWebRTCMic(boolean enable) {
+        if (peerConnectionClient != null) {
             peerConnectionClient.setAudioEnabled(enable);
         }
     }
@@ -228,10 +355,11 @@ public class IjkVideoView extends FrameLayout implements
                 FrameLayout.LayoutParams.WRAP_CONTENT,
                 Gravity.BOTTOM);
         addView(subtitleDisplay, layoutParams_txt);
-        cond = new ConditionVariable();
+        mScaleDetector = new ScaleGestureDetector(context, mScaleListener);
+        mDetector = new GestureDetector(context, mGestureListener);
     }
 
-    synchronized public void setRenderView(IRenderView renderView) {
+    public void setRenderView(IRenderView renderView) {
         if (mRenderView != null) {
             if (mMediaPlayer != null)
                 mMediaPlayer.setDisplay(null);
@@ -264,7 +392,7 @@ public class IjkVideoView extends FrameLayout implements
         mRenderView.setVideoRotation(mVideoRotationDegree);
     }
 
-    synchronized public void setRender(int render) {
+    public void setRender(int render) {
         switch (render) {
             case RENDER_NONE:
                 setRenderView(null);
@@ -296,11 +424,11 @@ public class IjkVideoView extends FrameLayout implements
      *
      * @param path the path of the video.
      */
-    synchronized public void setVideoPath(String path) {
+    public void setVideoPath(String path) {
         setVideoPath(path, null);
     }
 
-    synchronized public void setVideoPath(String path, Map<String,String> headers) {
+    public void setVideoPath(String path, Map<String, String> headers) {
         mHttpHeaders = headers;
         setVideoURI(Uri.parse(path));
     }
@@ -308,26 +436,35 @@ public class IjkVideoView extends FrameLayout implements
     /**
      * Sets video URI.
      *
-     * @param uri     the URI of the video.
+     * @param uri the URI of the video.
      */
     private void setVideoURI(Uri uri) {
         mUri = uri;
         mSeekWhenPrepared = 0;
         openVideo();
-        requestLayout();
-        invalidate();
+        mHandler.sendEmptyMessage(MSG_UPDATE_UI);
     }
 
-    synchronized public void stopPlayback() {
+    public void stopPlayback() {
+        mHandler.removeCallbacksAndMessages(null);
+        if (mBackgoundHandler != null) {
+            mBackgoundHandler.removeCallbacksAndMessages(null);
+        }
+        if (mHandlerThread != null) {
+            mHandlerThread.quit();
+            mHandlerThread.interrupt();
+            mHandlerThread = null;
+        }
+
         if (mMediaPlayer != null) {
-            mMediaPlayer.stop();
-            mMediaPlayer.release();
-            mMediaPlayer = null;
             mCurrentState = STATE_IDLE;
             mTargetState = STATE_IDLE;
             mEnableOpenVideoOnSurfaceCreate = false;
             AudioManager am = (AudioManager) mAppContext.getSystemService(Context.AUDIO_SERVICE);
             am.abandonAudioFocus(null);
+            mMediaPlayer.stop();
+            mMediaPlayer.release();
+            mMediaPlayer = null;
         }
     }
 
@@ -360,7 +497,16 @@ public class IjkVideoView extends FrameLayout implements
             mMediaPlayer.setOnSeekCompleteListener(mSeekCompleteListener);
             mMediaPlayer.setOnTimedTextListener(mOnTimedTextListener);
             mCurrentBufferPercentage = 0;
-            mMediaPlayer.setDataSource(mAppContext, mUri, null);
+
+            if (ContentResolver.SCHEME_ANDROID_RESOURCE.equalsIgnoreCase(mUri.getScheme())) {
+                int resId = Integer.parseInt(mUri.getPath().substring(1));
+                AssetFileDescriptor afd = getResources().openRawResourceFd(resId);
+                RawDataSourceProvider sourceProvider = new RawDataSourceProvider(afd);
+                mMediaPlayer.setDataSource(sourceProvider);
+            } else {
+                mMediaPlayer.setDataSource(mAppContext, mUri, null);
+            }
+
             bindSurfaceHolder(mMediaPlayer, mSurfaceHolder);
             mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
             mMediaPlayer.setScreenOnWhilePlaying(true);
@@ -383,7 +529,7 @@ public class IjkVideoView extends FrameLayout implements
         }
     }
 
-    synchronized public void setMediaController(IMediaController controller) {
+    public void setMediaController(IMediaController controller) {
         if (mMediaController != null) {
             mMediaController.hide();
         }
@@ -414,6 +560,7 @@ public class IjkVideoView extends FrameLayout implements
                             mRenderView.setVideoSampleAspectRatio(mVideoSarNum, mVideoSarDen);
                         }
                         requestLayout();
+                        updateRenderViewSize();
                     }
                 }
             };
@@ -525,8 +672,8 @@ public class IjkVideoView extends FrameLayout implements
                             if (mMp4Path != null) {
                                 mMp4Path = null;
                                 stopPlayback();
-                                if (mOnCompleteListener != null) {
-                                    mOnCompleteListener.onComplete(0);
+                                if (mDownloadListener != null) {
+                                    mDownloadListener.onComplete(arg2);
                                 }
                             }
                             break;
@@ -543,7 +690,12 @@ public class IjkVideoView extends FrameLayout implements
                     mTargetState = STATE_ERROR;
 
                     /* If an error handler has been supplied, use it and finish. */
-                    if (mOnErrorListener != null) {
+                    if (mMp4Path != null) {
+                        mMp4Path = null;
+                        if (mDownloadListener != null) {
+                            mDownloadListener.onComplete(framework_err);
+                        }
+                    } else if (mOnErrorListener != null) {
                         if (mOnErrorListener.onError(mMediaPlayer, framework_err, impl_err)) {
                             return true;
                         }
@@ -585,7 +737,7 @@ public class IjkVideoView extends FrameLayout implements
      *
      * @param l The callback that will be run
      */
-    synchronized public void setOnPreparedListener(IMediaPlayer.OnPreparedListener l) {
+    public void setOnPreparedListener(IMediaPlayer.OnPreparedListener l) {
         mOnPreparedListener = l;
     }
 
@@ -595,7 +747,7 @@ public class IjkVideoView extends FrameLayout implements
      *
      * @param l The callback that will be run
      */
-    synchronized public void setOnCompletionListener(IMediaPlayer.OnCompletionListener l) {
+    public void setOnCompletionListener(IMediaPlayer.OnCompletionListener l) {
         mOnCompletionListener = l;
     }
 
@@ -607,7 +759,7 @@ public class IjkVideoView extends FrameLayout implements
      *
      * @param l The callback that will be run
      */
-    synchronized public void setOnErrorListener(IMediaPlayer.OnErrorListener l) {
+    public void setOnErrorListener(IMediaPlayer.OnErrorListener l) {
         mOnErrorListener = l;
     }
 
@@ -617,7 +769,7 @@ public class IjkVideoView extends FrameLayout implements
      *
      * @param l The callback that will be run
      */
-    synchronized public void setOnInfoListener(IMediaPlayer.OnInfoListener l) {
+    public void setOnInfoListener(IMediaPlayer.OnInfoListener l) {
         mOnInfoListener = l;
     }
 
@@ -662,10 +814,15 @@ public class IjkVideoView extends FrameLayout implements
             }
 
             mSurfaceHolder = holder;
-            if (mMediaPlayer != null)
-                bindSurfaceHolder(mMediaPlayer, holder);
-            else if (mEnableOpenVideoOnSurfaceCreate)
-                openVideo();
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    if (mMediaPlayer != null)
+                        bindSurfaceHolder(mMediaPlayer, holder);
+                    else if (mEnableOpenVideoOnSurfaceCreate)
+                        openVideo();
+                }
+            }).start();
         }
 
         @Override
@@ -678,7 +835,12 @@ public class IjkVideoView extends FrameLayout implements
             // after we return from this we can't use the surface any more
             mSurfaceHolder = null;
             if (mMediaPlayer != null) {
-                mMediaPlayer.setDisplay(null);
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        mMediaPlayer.setDisplay(null);
+                    }
+                }).start();
             }
         }
     };
@@ -686,7 +848,7 @@ public class IjkVideoView extends FrameLayout implements
     /*
      * release the media player in any state
      */
-    synchronized public void release(boolean cleartargetstate) {
+    public void release(boolean cleartargetstate) {
         if (cleartargetstate) {
             mUri = null;
             mEnableOpenVideoOnSurfaceCreate = true;
@@ -707,10 +869,22 @@ public class IjkVideoView extends FrameLayout implements
 
     @Override
     public boolean onTouchEvent(MotionEvent ev) {
-        if (isInPlaybackState() && mMediaController != null) {
-            toggleMediaControlsVisiblity();
+        boolean ret = mScaleDetector.onTouchEvent(ev);
+        boolean onDragging = mDetector.onTouchEvent(ev);
+        ret = ret || onDragging;
+
+        if (onDragging || mOnScaling ) {
+            mScaleOrDragEndTime = System.currentTimeMillis();
+        } else {
+            if (mScaleOrDragEndTime == 0 || System.currentTimeMillis() - mScaleOrDragEndTime > IGNORE_THRESHOLD_IN_MS) {
+                if (isInPlaybackState() && mMediaController != null) {
+                    toggleMediaControlsVisiblity();
+                }
+                ret = super.onTouchEvent(ev) || ret;
+                mScaleOrDragEndTime = 0;
+            }
         }
-        return false;
+        return ret;
     }
 
     @Override
@@ -771,20 +945,34 @@ public class IjkVideoView extends FrameLayout implements
     }
 
     @Override
-    synchronized public void start() {
+    public void start() {
         if (mEnableGetFrame != 0 && mUsingMediaCodec) {
             throw new RuntimeException("EnableGetFrame & UsingMediaCodec can't be enabled at the same time!!");
         }
 
+        if (mHandlerThread == null) {
+            mHandlerThread = new HandlerThread("HandlerThread");
+            mHandlerThread.start();
+        }
+
+        mBackgoundHandler = new Handler(mHandlerThread.getLooper()) {
+            @Override
+            public void handleMessage(Message msg) {
+                if (isInPlaybackState()) {
+                    mMediaPlayer.start();
+                }
+            }
+        };
+
         if (isInPlaybackState()) {
-            mMediaPlayer.start();
+            mBackgoundHandler.sendEmptyMessage(MSG_START);
             mCurrentState = STATE_PLAYING;
         }
         mTargetState = STATE_PLAYING;
     }
 
     @Override
-    synchronized public void pause() {
+    public void pause() {
         if (isInPlaybackState()) {
             if (mMediaPlayer.isPlaying()) {
                 mMediaPlayer.pause();
@@ -795,7 +983,7 @@ public class IjkVideoView extends FrameLayout implements
     }
 
     @Override
-    synchronized public int getDuration() {
+    public int getDuration() {
         if (isInPlaybackState()) {
             return (int) mMediaPlayer.getDuration();
         }
@@ -826,11 +1014,11 @@ public class IjkVideoView extends FrameLayout implements
     }
 
     @Override
-    synchronized public void seekTo(int msec) {
-        seekTo((long)msec);
+    public void seekTo(int msec) {
+        seekTo((long) msec);
     }
 
-    synchronized public void seekTo(long msec) {
+    public void seekTo(long msec) {
         if (isInPlaybackState()) {
             mMediaPlayer.seekTo(msec);
             mSeekWhenPrepared = 0;
@@ -840,12 +1028,12 @@ public class IjkVideoView extends FrameLayout implements
     }
 
     @Override
-    synchronized public boolean isPlaying() {
+    public boolean isPlaying() {
         return isInPlaybackState() && mMediaPlayer.isPlaying();
     }
 
     @Override
-    synchronized public int getBufferPercentage() {
+    public int getBufferPercentage() {
         if (mMediaPlayer != null) {
             return mCurrentBufferPercentage;
         }
@@ -860,32 +1048,32 @@ public class IjkVideoView extends FrameLayout implements
     }
 
     @Override
-    synchronized public boolean canPause() {
+    public boolean canPause() {
         return true;
     }
 
     @Override
-    synchronized public boolean canSeekBackward() {
+    public boolean canSeekBackward() {
         return true;
     }
 
     @Override
-    synchronized public boolean canSeekForward() {
+    public boolean canSeekForward() {
         return true;
     }
 
     @Override
-    synchronized public int getAudioSessionId() {
+    public int getAudioSessionId() {
         return 0;
     }
-    
+
     //-------------------------
     // Extend: Aspect Ratio
     //-------------------------
 
     private int mCurrentAspectRatio = IRenderView.AR_ASPECT_FIT_PARENT;
 
-    synchronized public void setAspectRatio(int aspectRatio) {
+    public void setAspectRatio(int aspectRatio) {
         mCurrentAspectRatio = aspectRatio;
         if (mRenderView != null) {
             mRenderView.setAspectRatio(mCurrentAspectRatio);
@@ -903,17 +1091,21 @@ public class IjkVideoView extends FrameLayout implements
         setRender(RENDER_SURFACE_VIEW);
     }
 
-    synchronized public IMediaPlayer createPlayer() {
+    public IMediaPlayer createPlayer() {
 
         if (mUri == null) {
             return null;
         }
 
+        if (mBufferThreshold > 0 && mLowDelay > 0) {
+            Log.e(TAG, "bufferThreshold should not be used with lowDelay mode!!!");
+        }
+
         IjkMediaPlayer ijkMediaPlayer = new IjkMediaPlayer();
-        IjkMediaPlayer.native_setLogLevel(IjkMediaPlayer.IJK_LOG_DEBUG);
+        IjkMediaPlayer.native_setLogLevel(mDebug ? IjkMediaPlayer.IJK_LOG_DEBUG: IjkMediaPlayer.IJK_LOG_SILENT);
         ijkMediaPlayer.setSpeed(mSpeed);
 
-        if (mUri.getScheme() != null && (mUri.getScheme().equalsIgnoreCase("rtsp") || mUri.getScheme().equalsIgnoreCase("avapi") || mUri.getScheme().equalsIgnoreCase("webrtc"))) {
+        if (mBufferThreshold == 0 && mUri.getScheme() != null && (mUri.getScheme().equalsIgnoreCase("rtsp") || mUri.getScheme().equalsIgnoreCase("avapi") || mUri.getScheme().equalsIgnoreCase("webrtc"))) {
             ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "analyzemaxduration", 100L);
             ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "probesize", 10240L);
             ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "flush_packets", 1L);
@@ -921,9 +1113,32 @@ public class IjkVideoView extends FrameLayout implements
             mAccurateSeek = 0;
         }
 
+        if (mBufferThreshold > 0) {
+            ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "next-high-water-mark-ms", mBufferThreshold);
+            ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "last-high-water-mark-ms", mBufferThreshold);
+        }
+
+        if (mUri.getScheme() != null && mUri.getScheme().equalsIgnoreCase("rtsp")) {
+            ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "rtsp_flags", "prefer_tcp");
+        }
+
+        if (mCodecThreads > 0) {
+            ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_CODEC, "threads", mCodecThreads);
+        }
+
         ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "low-delay", mLowDelay);
-        ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "enable-accurate-seek", mAccurateSeek );
+        if (mLowDelayStartThreshold > 0) {
+            ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "low-delay-start-threshold", mLowDelayStartThreshold);
+        }
+        if (mLowDelayStopThreshold > 0) {
+            ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "low-delay-stop-threshold", mLowDelayStopThreshold);
+        }
+        if (mAvapiTimeout > 0) {
+            ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "avapi_timeout", mAvapiTimeout);
+        }
+        ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "enable-accurate-seek", mAccurateSeek);
         ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec", mUsingMediaCodec ? 1 : 0);
+        ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "mediacodec-all-videos", mUsingMediaCodec ? 1 : 0);
 
         ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "overlay-format", mPixelFormat);
         ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "framedrop", 10);
@@ -932,7 +1147,6 @@ public class IjkVideoView extends FrameLayout implements
         ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "http-detect-range-support", 0);
 
         ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "enable-get-frame", mEnableGetFrame);
-        ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "enable-aec", mEnableAEC);
         ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "avtech_seek", mEnableAvtechSeek);
         if (mEnableAvtechSeek != 0 && mUserAgent == null) {
             mUserAgent = "TUTK Application";
@@ -940,7 +1154,11 @@ public class IjkVideoView extends FrameLayout implements
         ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "user-agent", mUserAgent);
         ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "av_api3", mAvAPIs3);
         ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "av_api4", mAvAPIs4);
+        ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "dtls", mDtls);
+        ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "avapidec_av_api4", mAvAPIs4);
         ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "webrtc_api", mWebRTCAPIs);
+        ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "hack-claire-control", mHackClaireControl);
+        ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "easy_mode", mEasyMode);
 
         if (mHttpHeaders != null) {
             String httpHeader = "";
@@ -951,12 +1169,14 @@ public class IjkVideoView extends FrameLayout implements
             ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "headers", httpHeader);
         }
 
-        ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "disable-multithread-delaying", mDisableMultithreadDelaying);
-
         if (mMp4Path != null) {
             ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "video-record-path", mMp4Path);
             ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "infbuf", 1);
             ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "volume", 0);
+        }
+
+        if (mMaxBufferSize >= 0) {
+            ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "max-buffer-size", mMaxBufferSize);
         }
 
         return ijkMediaPlayer;
@@ -969,48 +1189,44 @@ public class IjkVideoView extends FrameLayout implements
         return mMediaPlayer.getTrackInfo();
     }
 
-    synchronized public void selectTrack(int stream) {
+    public void selectTrack(int stream) {
         MediaPlayerCompat.selectTrack(mMediaPlayer, stream);
     }
 
-    synchronized public void deselectTrack(int stream) {
+    public void deselectTrack(int stream) {
         MediaPlayerCompat.deselectTrack(mMediaPlayer, stream);
     }
 
-    synchronized public int getSelectedTrack(int trackType) {
+    public int getSelectedTrack(int trackType) {
         return MediaPlayerCompat.getSelectedTrack(mMediaPlayer, trackType);
     }
 
-    synchronized public void setSpeed(float speed) {
+    public void setSpeed(float speed) {
         mSpeed = speed;
-        IjkMediaPlayer ijkMediaPlayer = (IjkMediaPlayer)mMediaPlayer;
+        IjkMediaPlayer ijkMediaPlayer = (IjkMediaPlayer) mMediaPlayer;
         if (ijkMediaPlayer != null) {
             ijkMediaPlayer.setSpeed(speed);
         }
     }
 
-    synchronized public IjkFrame getFrame() {
+    public IjkFrame getFrame() {
         if (mMediaPlayer == null) {
             return null;
         }
 
-        IjkFrame ret = ((IjkMediaPlayer)mMediaPlayer).getFrame();
+        IjkFrame ret = ((IjkMediaPlayer) mMediaPlayer).getFrame();
         return ret;
     }
 
-    synchronized public void enableGetFrame() {
-        //
-        // <HACK>: get frame only works when pixel format = SDL_FCC_GLES2
-        //
-        mPixelFormat = "fcc-_es2";
+    public void enableGetFrame() {
         mEnableGetFrame = 1;
     }
 
-    synchronized public int startVideoRecord(String path) {
+    public int startVideoRecord(String path) {
         return startVideoRecord(path, 0);
     }
 
-    synchronized public int startVideoRecord(String path, int durationInSeconds) {
+    public int startVideoRecord(String path, int durationInSeconds) {
         if (mMediaPlayer == null || path == null) {
             return -1;
         }
@@ -1021,7 +1237,7 @@ public class IjkVideoView extends FrameLayout implements
         return 0;
     }
 
-    synchronized public int stopVideoRecord() {
+    public int stopVideoRecord() {
         if (mMediaPlayer == null) {
             return -1;
         }
@@ -1031,34 +1247,45 @@ public class IjkVideoView extends FrameLayout implements
         return 0;
     }
 
-    synchronized public int toMp4(String src, String dst, IMediaPlayer.OnCompleteListener listener) {
+    public int toMp4(String src, String dst, IMediaPlayer.DownloadListener listener) {
+        return toMp4(src, dst, listener, 0);
+    }
+
+    public int toMp4(String src, String dst, IMediaPlayer.DownloadListener listener, int timeoutInSeconds) {
         if (src == null || dst == null) {
             return -1;
         }
 
-        mOnCompleteListener = listener;
+        mVideoRecordTimeout = timeoutInSeconds;
+        mVideoRecordStartTime = System.currentTimeMillis();
+        mDownloadListener = listener;
         mMp4Path = dst;
         setVideoPath(src);
         start();
+
+        if (timeoutInSeconds > 0) {
+            mHandler.sendEmptyMessage(MSG_CHECK);
+        }
         return 0;
     }
 
-    /**
-     * Enable acoustic echo cancelling.
-     */
-    synchronized public void enableAEC() {
-        mEnableAEC = 1;
-    }
-
-    synchronized public void enableAvtechSeek() {
+    public void enableAvtechSeek() {
         mEnableAvtechSeek = 1;
     }
 
-    synchronized public void enableMediaCodec() {
+    public void enableMediaCodec() {
         mUsingMediaCodec = true;
     }
 
-    synchronized public void setAVAPI(long avAPIs, int avapiVersion) {
+    public void disableDebug() {
+        mDebug = false;
+    }
+
+    public void setAVAPI(long avAPIs, int avapiVersion) {
+        setAVAPI(avAPIs, avapiVersion, AV_SECURITY_AUTO);
+    }
+
+    public void setAVAPI(long avAPIs, int avapiVersion, int dtls) {
         if (avapiVersion == 3) {
             mAvAPIs3 = avAPIs;
             mAvAPIs4 = 0;
@@ -1066,21 +1293,26 @@ public class IjkVideoView extends FrameLayout implements
             mAvAPIs3 = 0;
             mAvAPIs4 = avAPIs;
         }
+        mDtls = dtls;
     }
 
-    synchronized  public void setWebRTCAPI(long APIs) {
+    public void setMaxBufferSize(int size) {
+        mMaxBufferSize = size;
+    }
+
+    public void setWebRTCAPI(long APIs) {
         mWebRTCAPIs = APIs;
     }
 
-    synchronized public void setUserAgent(String userAgent) {
+    public void setUserAgent(String userAgent) {
         mUserAgent = userAgent;
     }
 
-    synchronized public void disableMultithreadDelaying() {
-        mDisableMultithreadDelaying = 1;
+    public void setCodecThreads(int num) {
+        mCodecThreads = num;
     }
 
-    synchronized public void setLowDelay( Boolean enable) {
+    public void setLowDelay(Boolean enable) {
         mLowDelay = enable ? 1 : 0;
         if (mMediaPlayer == null) {
             return;
@@ -1090,11 +1322,43 @@ public class IjkVideoView extends FrameLayout implements
         ijkPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "low-delay", mLowDelay);
     }
 
-    synchronized public void setOnSeekCompleteListener(IMediaPlayer.OnSeekCompleteListener l) {
+    public void setLowDelayThreshold(int startThreshold, int stopThreshold) {
+        mLowDelayStartThreshold = startThreshold;
+        mLowDelayStopThreshold = stopThreshold;
+        if (mMediaPlayer == null) {
+            return;
+        }
+
+        IjkMediaPlayer ijkPlayer = (IjkMediaPlayer) mMediaPlayer;
+        if (mLowDelayStartThreshold > 0 ) {
+            ijkPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "low-delay-start-threshold", mLowDelayStartThreshold);
+        }
+        if (mLowDelayStopThreshold > 0 ) {
+            ijkPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "low-delay-stop-threshold", mLowDelayStopThreshold);
+        }
+    }
+
+    public void enableHackClaireControl() {
+        mHackClaireControl = 1;
+    }
+
+    public void enableEasyMode() {
+        mEasyMode = 1;
+    }
+
+    public void setAvapiTimeout(int timeoutMS) {
+        mAvapiTimeout = timeoutMS;
+    }
+
+    public void setOnSeekCompleteListener(IMediaPlayer.OnSeekCompleteListener l) {
         mOnSeekCompleteListener = l;
     }
 
-    synchronized public float getVolume() {
+    public void setBufferThreshold(int threshold) {
+        mBufferThreshold = threshold;
+    }
+
+    public float getVolume() {
         if (mMediaPlayer == null) {
             return 1.0f;
         }
@@ -1103,7 +1367,7 @@ public class IjkVideoView extends FrameLayout implements
         return ijkPlayer.getVolume();
     }
 
-    synchronized public void setVolume(float volume) {
+    public void setVolume(float volume) {
         if (mMediaPlayer == null) {
             return;
         }
@@ -1112,7 +1376,7 @@ public class IjkVideoView extends FrameLayout implements
         ijkPlayer.setVolume(volume, volume);
     }
 
-    synchronized public void printStatistics() {
+    public void printStatistics() {
         if (!isInPlaybackState()) {
             return;
         }
@@ -1135,15 +1399,15 @@ public class IjkVideoView extends FrameLayout implements
         float fpsOutput = mp.getVideoOutputFramesPerSecond();
         long videoCachedDuration = mp.getVideoCachedDuration();
         long audioCachedDuration = mp.getAudioCachedDuration();
-        long tcpSpeed            = mp.getTcpSpeed();
-        long bitRate             = mp.getBitRate();
-        long seekLoadDuration    = mp.getSeekLoadDuration();
+        long tcpSpeed = mp.getTcpSpeed();
+        long bitRate = mp.getBitRate();
+        long seekLoadDuration = mp.getSeekLoadDuration();
 
         String strFpsOutput = String.format(Locale.US, "%.2f", fpsOutput);
         String strVideoCachedDuration = formatedDurationMilli(videoCachedDuration);
         String strAudioCachedDuration = formatedDurationMilli(audioCachedDuration);
         String strTcpSpeed = formatedSpeed(tcpSpeed, 1000);
-        String strBitRate = String.format(Locale.US, "%.2f kbs", bitRate/1000f);
+        String strBitRate = String.format(Locale.US, "%.2f kbs", bitRate / 1000f);
         String strSeekLoadDuration = String.format(Locale.US, "%d ms", seekLoadDuration);
 
         Log.i(TAG, "Decoder: " + strDecoder);
@@ -1156,14 +1420,14 @@ public class IjkVideoView extends FrameLayout implements
     }
 
     private static String formatedDurationMilli(long duration) {
-        if (duration >=  1000) {
-            return String.format(Locale.US, "%.2f sec", ((float)duration) / 1000);
+        if (duration >= 1000) {
+            return String.format(Locale.US, "%.2f sec", ((float) duration) / 1000);
         } else {
             return String.format(Locale.US, "%d msec", duration);
         }
     }
 
-    private static String formatedSpeed(long bytes,long elapsed_milli) {
+    private static String formatedSpeed(long bytes, long elapsed_milli) {
         if (elapsed_milli <= 0) {
             return "0 B/s";
         }
@@ -1172,13 +1436,13 @@ public class IjkVideoView extends FrameLayout implements
             return "0 B/s";
         }
 
-        float bytes_per_sec = ((float)bytes) * 1000.f /  elapsed_milli;
+        float bytes_per_sec = ((float) bytes) * 1000.f / elapsed_milli;
         if (bytes_per_sec >= 1000 * 1000) {
-            return String.format(Locale.US, "%.2f MB/s", ((float)bytes_per_sec) / 1000 / 1000);
+            return String.format(Locale.US, "%.2f MB/s", ((float) bytes_per_sec) / 1000 / 1000);
         } else if (bytes_per_sec >= 1000) {
-            return String.format(Locale.US, "%.1f KB/s", ((float)bytes_per_sec) / 1000);
+            return String.format(Locale.US, "%.1f KB/s", ((float) bytes_per_sec) / 1000);
         } else {
-            return String.format(Locale.US, "%d B/s", (long)bytes_per_sec);
+            return String.format(Locale.US, "%d B/s", (long) bytes_per_sec);
         }
     }
 
@@ -1187,7 +1451,7 @@ public class IjkVideoView extends FrameLayout implements
         int h = frame.height;
         Bitmap bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.RGB_565);
 
-        int [] pixels = new int[w * h];
+        int[] pixels = new int[w * h];
         int src = 0;
         int dst = 0;
         for (int y = 0; y < h; y++) {
@@ -1201,7 +1465,7 @@ public class IjkVideoView extends FrameLayout implements
             }
         }
 
-        bitmap.setPixels( pixels, 0, w, 0, 0, w, h );
+        bitmap.setPixels(pixels, 0, w, 0, 0, w, h);
         return bitmap;
     }
 
@@ -1241,6 +1505,15 @@ public class IjkVideoView extends FrameLayout implements
         return mp.getBitRate();
     }
 
+    public long getNetworkBitRate() {
+        if (!isInPlaybackState()) {
+            return 0;
+        }
+
+        IjkMediaPlayer mp = (IjkMediaPlayer) mMediaPlayer;
+        return mp.getNetworkBitRate();
+    }
+
     public long getVideoCachedDuration() {
         if (!isInPlaybackState()) {
             return 0;
@@ -1271,7 +1544,7 @@ public class IjkVideoView extends FrameLayout implements
     private int computeStep(int delta) {
         int step = delta;
         if (Math.abs(delta) > MIN_DISTANCE) {
-            step = (int)(delta * TRACKING_SPEED);
+            step = (int) (delta * TRACKING_SPEED);
             if (step == 0) {
                 if (delta < 0) {
                     step = -1;
@@ -1325,10 +1598,10 @@ public class IjkVideoView extends FrameLayout implements
         mCurrentX += stepX;
         mCurrentY += stepY;
 
-        return Bitmap.createBitmap(bmp, mCurrentX, mCurrentY, newW ,newH);
+        return Bitmap.createBitmap(bmp, mCurrentX, mCurrentY, newW, newH);
     }
 
-    private void drawRect(Bitmap bmp, List<ObjectTrackingInfo> trackingInfoList) {
+    private void drawRect(Bitmap bmp, List<ObjectTrackingInfo> trackingInfoList, Mode mode) {
         if (trackingInfoList.size() == 0) {
             return;
         }
@@ -1342,12 +1615,24 @@ public class IjkVideoView extends FrameLayout implements
         p.setColor(Color.RED);
         p.setStrokeWidth(5.0f);
 
+        Paint textPaint = new Paint();
+        textPaint.setStyle(Paint.Style.FILL_AND_STROKE);
+        textPaint.setAntiAlias(true);
+        textPaint.setFilterBitmap(true);
+        textPaint.setDither(true);
+        textPaint.setColor(Color.RED);
+        textPaint.setTextSize(PAINT_TEXT_SIZE_IN_PX);
+
         for (ObjectTrackingInfo info : trackingInfoList) {
             Rect rect = info.rect;
             canvas.drawLine(rect.x, rect.y, rect.x + rect.width, rect.y, p);
             canvas.drawLine(rect.x, rect.y, rect.x, rect.y + rect.height, p);
             canvas.drawLine(rect.x, rect.y + rect.height, rect.x + rect.width, rect.y + rect.height, p);
             canvas.drawLine(rect.x + rect.width, rect.y, rect.x + rect.width, rect.y + rect.height, p);
+            if (mode != Mode.OBJECT_DETECT) {
+                break;
+            }
+            canvas.drawText(info.category, rect.x, rect.y - 10, textPaint);
         }
     }
 
@@ -1386,12 +1671,12 @@ public class IjkVideoView extends FrameLayout implements
             mainView.drawFromBitmap(part);
             subView.setVisibility(GONE);
         } else if (mode == Mode.PIP) {
-            drawRect(full, frame.trackingInfo);
+            drawRect(full, frame.trackingInfo, mode);
             mainView.drawFromBitmap(part);
             subView.drawFromBitmap(full);
             subView.setVisibility(VISIBLE);
         } else if (mode == Mode.OBJECT_DETECT) {
-            drawRect(full, frame.trackingInfo);
+            drawRect(full, frame.trackingInfo, mode);
             mainView.drawFromBitmap(full);
             subView.setVisibility(GONE);
         }
@@ -1412,18 +1697,26 @@ public class IjkVideoView extends FrameLayout implements
             return null;
         }
 
+        if (mVideoWidth == 0 || mVideoHeight == 0) {
+            return null;
+        }
+
         final Bitmap bmp = Bitmap.createBitmap(mVideoWidth, mVideoHeight, Bitmap.Config.ARGB_8888);
         final HandlerThread handlerThread = new HandlerThread("PixelCopier");
 
         handlerThread.start();
         mPixelCopyDone = false;
-        PixelCopy.request((SurfaceView) mRenderView, bmp, (copyResult) -> {
-            if (copyResult != PixelCopy.SUCCESS) {
-                Log.e(TAG, "getSurfaceViewAsBitmap: PixelCopy failed!!");
-            }
-            handlerThread.quitSafely();
-            mPixelCopyDone = true;
-        }, new Handler(handlerThread.getLooper()));
+        try {
+            PixelCopy.request((SurfaceView) mRenderView, bmp, (copyResult) -> {
+                if (copyResult != PixelCopy.SUCCESS) {
+                    Log.e(TAG, "getSurfaceViewAsBitmap: PixelCopy failed!!");
+                }
+                handlerThread.quitSafely();
+                mPixelCopyDone = true;
+            }, new Handler(handlerThread.getLooper()));
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
 
         while (!mPixelCopyDone) {
             try {
@@ -1434,11 +1727,53 @@ public class IjkVideoView extends FrameLayout implements
         return bmp;
     }
 
+    public float getMaxScale() {
+        return mMaxScale;
+    }
+
+    public int setMaxScale(float maxScale) {
+        if (maxScale < 1.0f) {
+            return -1;
+        }
+        mMaxScale = maxScale;
+        return 0;
+    }
+
+    public void resetView() {
+        mScaleFactor = 1.0f;
+        mOffsetX = 0.f;
+        mOffsetY = 0.f;
+        View view = mRenderView.getView();
+        view.setScaleX(1.0f);
+        view.setScaleY(1.0f);
+        view.setTranslationX(0.f);
+        view.setTranslationY(0.f);
+        invalidate();
+    }
+
+    private void scale(float scale) {
+        View view = mRenderView.getView();
+        view.setScaleX(scale);
+        view.setScaleY(scale);
+        invalidate();
+    }
+
+    public void setListener(Listener listener) {
+        mListener = listener;
+    }
+
+    private void updateRenderViewSize() {
+        View view = mRenderView.getView();
+        mOriginalWidth = view.getWidth();
+        mOriginalHeight = view.getHeight();
+    }
+
+
     private static class ProxyVideoSink implements VideoSink {
         private VideoSink target;
 
         @Override
-        synchronized public void onFrame(VideoFrame frame) {
+        public void onFrame(VideoFrame frame) {
             if (target == null) {
                 //Logging.d(TAG, "Dropping frame in proxy because target is null.");
                 return;
@@ -1447,43 +1782,49 @@ public class IjkVideoView extends FrameLayout implements
             target.onFrame(frame);
         }
 
-        synchronized public void setTarget(VideoSink target) {
+        public void setTarget(VideoSink target) {
             this.target = target;
         }
     }
 
-    synchronized public long startWebRTC(Context context, DisplayMetrics displayMetrics, NebulaInterface nebukaAPIs, NebulaParameter param) {
-        mRtcClient = new NebulaRTCClient(this, nebukaAPIs);
+    public long startWebRTC(Context context, DisplayMetrics displayMetrics, NebulaInterface nebukaAPIs, NebulaParameter param) {
+        synchronized (mWebRTClock) {
+            mWebrtcId = INVALID_WEBRTC_ID;
+            cond = new ConditionVariable();
+            mRtcClient = new NebulaRTCClient(this, nebukaAPIs);
 
-        long webRTCApis[] = new long[1];
-        final EglBase eglBase = EglBase.create();
-        DataChannelParameters dataChannelParameters = null;
-        peerConnectionParameters = new PeerConnectionParameters(true, false, false,
-                displayMetrics.widthPixels, displayMetrics.heightPixels, 0, 0, "H264 High",
-                true, false, 0, "OPUS", false,
-                false, false, false, false, false,
-                false, false, false, dataChannelParameters);
-        peerConnectionClient = new PeerConnectionClient(
-                context, eglBase, peerConnectionParameters, this);
-        PeerConnectionFactory.Options options = new PeerConnectionFactory.Options();
-        peerConnectionClient.createPeerConnectionFactory(options);
+            long webRTCApis[] = new long[1];
+            final EglBase eglBase = EglBase.create();
+            DataChannelParameters dataChannelParameters = null;
+            peerConnectionParameters = new PeerConnectionParameters(true, false, false,
+                    displayMetrics.widthPixels, displayMetrics.heightPixels, 0, 0, "H264 High",
+                    true, false, 0, "OPUS", false,
+                    false, false, false, false, false,
+                    false, false, false, dataChannelParameters);
+            peerConnectionClient = new PeerConnectionClient(
+                    context, eglBase, peerConnectionParameters, this);
+            PeerConnectionFactory.Options options = new PeerConnectionFactory.Options();
+            peerConnectionClient.createPeerConnectionFactory(options);
 
-        callStartedTimeMs = System.currentTimeMillis();
+            callStartedTimeMs = System.currentTimeMillis();
 
-        remoteSinks.add(remoteProxyRenderer);
-        roomConnectionParameters =
-                new RoomConnectionParameters(null, null, false, null, param);
-        mRtcClient.connectToRoom(roomConnectionParameters);
-        cond.block();
-        if(mWebrtcId != -1) {
-            peerConnectionClient.getWebRTCApi(webRTCApis);
-            mWebRTCAPIs = webRTCApis[0];
+            remoteSinks.add(remoteProxyRenderer);
+            roomConnectionParameters =
+                    new RoomConnectionParameters(null, null, false, null, param);
+            mRtcClient.connectToRoom(roomConnectionParameters);
+            cond.block();
+            if (mWebrtcId != INVALID_WEBRTC_ID) {
+                peerConnectionClient.getWebRTCApi(webRTCApis);
+                mWebRTCAPIs = webRTCApis[0];
+            }
+            return mWebrtcId;
         }
-        return mWebrtcId;
     }
 
-    synchronized public void stopWebRTC() {
-        disconnect();
+    public void stopWebRTC() {
+        synchronized (mWebRTClock) {
+            disconnect();
+        }
     }
 
     private void logAndToast(String msg) {
@@ -1499,7 +1840,8 @@ public class IjkVideoView extends FrameLayout implements
         return true;
     }
 
-    private @Nullable VideoCapturer createCameraCapturer(CameraEnumerator enumerator) {
+    private @Nullable
+    VideoCapturer createCameraCapturer(CameraEnumerator enumerator) {
         final String[] deviceNames = enumerator.getDeviceNames();
 
         // First, try to find front facing camera
@@ -1711,6 +2053,7 @@ public class IjkVideoView extends FrameLayout implements
     @Override
     public void onChannelError(String description) {
         logAndToast(description);
+        cond.open();
     }
 
     @Override
@@ -1825,6 +2168,8 @@ public class IjkVideoView extends FrameLayout implements
             }
         });*/
         logAndToast("DTLS disconnected");
+        mErrorListener.onError(mMediaPlayer, MediaPlayer.MEDIA_ERROR_UNKNOWN, 0);
+        this.stopPlayback();
         //connected = false;
         disconnect();
     }
@@ -1842,7 +2187,6 @@ public class IjkVideoView extends FrameLayout implements
     @Override
     public void onPeerConnectionError(String description) {
         logAndToast(description);
-        mWebrtcId = -1;
     }
 
     @Override
@@ -1853,6 +2197,8 @@ public class IjkVideoView extends FrameLayout implements
 
     @Override
     public void onIceGatheringChange(PeerConnection.IceGatheringState newState) {
-        mRtcClient.sendIceGatheringState(newState);
+        if (mRtcClient != null) {
+            mRtcClient.sendIceGatheringState(newState);
+        }
     }
 }

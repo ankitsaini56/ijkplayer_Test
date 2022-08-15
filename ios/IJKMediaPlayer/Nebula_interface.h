@@ -1,6 +1,6 @@
 
 typedef struct NebulaAPI {
+    long    ctx;
     int     size;
-    int     (*Client_New)(const char *udid, const char *credential, long *ctx);
     int     (*Send_Command)(long ctx, const char *reqJson, char **response, int timeoutMS);
 } NebulaAPI;

@@ -112,6 +112,7 @@ static int vout_display_overlay_l(SDL_Vout *vout, SDL_VoutOverlay *overlay)
         if ([gl_view respondsToSelector:@selector(display_pixels:)]) {
              [gl_view display_pixels:&ijk_overlay];
         }
+        CVPixelBufferRelease(ijk_overlay.pixel_buffer);
     } else {
         [gl_view display:overlay];
     }

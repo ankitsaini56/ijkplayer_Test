@@ -293,11 +293,7 @@ SDL_VoutOverlay *SDL_VoutFFmpeg_CreateOverlay(int width, int height, int frame_f
                 case AV_PIX_FMT_YUV420P:
                 case AV_PIX_FMT_YUVJ420P:
                 default:
-#if defined(__ANDROID__)
-                    overlay_format = SDL_FCC_YV12;
-#else
                     overlay_format = SDL_FCC_I420;
-#endif
                     break;
             }
             break;

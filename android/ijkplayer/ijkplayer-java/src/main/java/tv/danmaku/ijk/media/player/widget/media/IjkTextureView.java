@@ -61,6 +61,9 @@ public class IjkTextureView extends TextureView {
     public void drawFromBitmap(Bitmap bitmap) {
         mDrawRect.set(getDrawRect(bitmap));
         Canvas canvas = lockCanvas();
+        if (canvas == null) {
+            return;
+        }
         canvas.drawBitmap(bitmap, null, mDrawRect, mDrawPaint);
         unlockCanvasAndPost(canvas);
     }

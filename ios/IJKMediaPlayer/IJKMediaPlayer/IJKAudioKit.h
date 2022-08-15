@@ -29,7 +29,7 @@
 @interface IJKAudioKit : NSObject
 
 + (IJKAudioKit *)sharedInstance;
-- (void)setupAudioSession;
+- (void)setupAudioSession:(BOOL)usePlaybackAndRecordMode;
 - (BOOL)setActive:(BOOL)active;
 
 @end

@@ -38,7 +38,6 @@
 #include "ijkplayer_android.h"
 #include "ijksdl/android/ijksdl_android_jni.h"
 #include "ijksdl/android/ijksdl_codec_android_mediadef.h"
-#include "ijkavformat/ijkavformat.h"
 #include "ijkplayer_internal.h"
 
 #define JNI_MODULE_PACKAGE      "tv/danmaku/ijk/media/player"
@@ -800,7 +799,6 @@ IjkMediaPlayer_native_setup(JNIEnv *env, jobject thiz, jobject weak_this)
     jni_set_media_player(env, thiz, mp);
     ijkmp_set_weak_thiz(mp, (*env)->NewGlobalRef(env, weak_this));
     ijkmp_set_inject_opaque(mp, ijkmp_get_weak_thiz(mp));
-    ijkmp_set_ijkio_inject_opaque(mp, ijkmp_get_weak_thiz(mp));
     ijkmp_android_set_mediacodec_select_callback(mp, mediacodec_select_callback, ijkmp_get_weak_thiz(mp));
 
 LABEL_RETURN:
@@ -812,94 +810,6 @@ IjkMediaPlayer_native_finalize(JNIEnv *env, jobject thiz, jobject name, jobject 
 {
     MPTRACE("%s\n", __func__);
     IjkMediaPlayer_release(env, thiz);
-}
-
-// NOTE: support to be called from read_thread
-static int
-inject_callback(void *opaque, int what, void *data, size_t data_size)
-{
-    JNIEnv     *env     = NULL;
-    jobject     jbundle = NULL;
-    int         ret     = -1;
-    SDL_JNI_SetupThreadEnv(&env);
-
-    jobject weak_thiz = (jobject) opaque;
-    if (weak_thiz == NULL )
-        goto fail;
-    switch (what) {
-        case AVAPP_CTRL_WILL_HTTP_OPEN:
-        case AVAPP_CTRL_WILL_LIVE_OPEN:
-        case AVAPP_CTRL_WILL_CONCAT_SEGMENT_OPEN: {
-            AVAppIOControl *real_data = (AVAppIOControl *)data;
-            real_data->is_handled = 0;
-
-            jbundle = J4AC_Bundle__Bundle__catchAll(env);
-            if (!jbundle) {
-                ALOGE("%s: J4AC_Bundle__Bundle__catchAll failed for case %d\n", __func__, what);
-                goto fail;
-            }
-            J4AC_Bundle__putString__withCString__catchAll(env, jbundle, "url", real_data->url);
-            J4AC_Bundle__putInt__withCString__catchAll(env, jbundle, "segment_index", real_data->segment_index);
-            J4AC_Bundle__putInt__withCString__catchAll(env, jbundle, "retry_counter", real_data->retry_counter);
-            real_data->is_handled = J4AC_IjkMediaPlayer__onNativeInvoke(env, weak_thiz, what, jbundle);
-            if (J4A_ExceptionCheck__catchAll(env)) {
-                goto fail;
-            }
-
-            J4AC_Bundle__getString__withCString__asCBuffer(env, jbundle, "url", real_data->url, sizeof(real_data->url));
-            if (J4A_ExceptionCheck__catchAll(env)) {
-                goto fail;
-            }
-            ret = 0;
-            break;
-        }
-        case AVAPP_EVENT_WILL_HTTP_OPEN:
-        case AVAPP_EVENT_DID_HTTP_OPEN:
-        case AVAPP_EVENT_WILL_HTTP_SEEK:
-        case AVAPP_EVENT_DID_HTTP_SEEK: {
-            AVAppHttpEvent *real_data = (AVAppHttpEvent *) data;
-            jbundle = J4AC_Bundle__Bundle__catchAll(env);
-            if (!jbundle) {
-                ALOGE("%s: J4AC_Bundle__Bundle__catchAll failed for case %d\n", __func__, what);
-                goto fail;
-            }
-            J4AC_Bundle__putString__withCString__catchAll(env, jbundle, "url", real_data->url);
-            J4AC_Bundle__putLong__withCString__catchAll(env, jbundle, "offset", real_data->offset);
-            J4AC_Bundle__putInt__withCString__catchAll(env, jbundle, "error", real_data->error);
-            J4AC_Bundle__putInt__withCString__catchAll(env, jbundle, "http_code", real_data->http_code);
-            J4AC_Bundle__putLong__withCString__catchAll(env, jbundle, "file_size", real_data->filesize);
-            J4AC_IjkMediaPlayer__onNativeInvoke(env, weak_thiz, what, jbundle);
-            if (J4A_ExceptionCheck__catchAll(env))
-                goto fail;
-            ret = 0;
-            break;
-        }
-        case AVAPP_CTRL_DID_TCP_OPEN:
-        case AVAPP_CTRL_WILL_TCP_OPEN: {
-            AVAppTcpIOControl *real_data = (AVAppTcpIOControl *)data;
-            jbundle = J4AC_Bundle__Bundle__catchAll(env);
-            if (!jbundle) {
-                ALOGE("%s: J4AC_Bundle__Bundle__catchAll failed for case %d\n", __func__, what);
-                goto fail;
-            }
-            J4AC_Bundle__putInt__withCString__catchAll(env, jbundle, "error", real_data->error);
-            J4AC_Bundle__putInt__withCString__catchAll(env, jbundle, "family", real_data->family);
-            J4AC_Bundle__putString__withCString__catchAll(env, jbundle, "ip", real_data->ip);
-            J4AC_Bundle__putInt__withCString__catchAll(env, jbundle, "port", real_data->port);
-            J4AC_Bundle__putInt__withCString__catchAll(env, jbundle, "fd", real_data->fd);
-            J4AC_IjkMediaPlayer__onNativeInvoke(env, weak_thiz, what, jbundle);
-            if (J4A_ExceptionCheck__catchAll(env))
-                goto fail;
-            ret = 0;
-            break;
-        }
-        default: {
-            ret = 0;
-        }
-    }
-fail:
-    SDL_JNI_DeleteLocalRefP(env, &jbundle);
-    return ret;
 }
 
 static bool mediacodec_select_callback(void *opaque, ijkmp_mediacodecinfo_context *mcc)
@@ -959,7 +869,7 @@ static void message_loop_n(JNIEnv *env, IjkMediaPlayer *mp)
             break;
         case FFP_MSG_ERROR:
             MPTRACE("FFP_MSG_ERROR: %lld\n", msg.arg1);
-            post_event(env, weak_thiz, MEDIA_ERROR, MEDIA_ERROR_IJK_PLAYER, msg.arg1);
+            post_event(env, weak_thiz, MEDIA_ERROR, msg.arg1, 0);
             break;
         case FFP_MSG_PREPARED:
             MPTRACE("FFP_MSG_PREPARED:\n");
@@ -1216,7 +1126,8 @@ IjkMediaPlayer_getRGBAFrame(JNIEnv *env, jobject thiz, jintArray jwidth, jintArr
     if (meta_str) {
         jmeta_str = (*env)->NewStringUTF(env, meta_str);
         (*env)->SetObjectArrayElement(env, jmeta, 0, jmeta_str);
-	(*env)->DeleteLocalRef(env, jmeta_str);
+    	(*env)->DeleteLocalRef(env, jmeta_str);
+        free(meta_str);
     }
 
     (*env)->ReleaseByteArrayElements( env, jframe, cframe, 0 );
@@ -1302,7 +1213,6 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved)
     (*env)->RegisterNatives(env, g_clazz.clazz, g_methods, NELEM(g_methods) );
 
     ijkmp_global_init();
-    ijkmp_global_set_inject_callback(inject_callback);
 
     FFmpegApi_global_init(env);
 
