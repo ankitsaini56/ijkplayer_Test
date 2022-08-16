@@ -12,6 +12,7 @@ package tv.danmaku.ijk.webrtc;
 
 import android.annotation.TargetApi;
 import android.content.Context;
+import android.media.AudioAttributes;
 import android.os.Build;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
@@ -559,6 +560,7 @@ public class PeerConnectionClient {
         .setAudioTrackErrorCallback(audioTrackErrorCallback)
         .setAudioRecordStateCallback(audioRecordStateCallback)
         .setAudioTrackStateCallback(audioTrackStateCallback)
+        .setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).build())
         .createAudioDeviceModule();
   }
 
