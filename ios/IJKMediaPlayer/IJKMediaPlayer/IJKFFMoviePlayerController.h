@@ -125,6 +125,7 @@ typedef enum IJKLogLevel {
 @property(nonatomic, assign) CGSize frameSize;
 @property(nonatomic, assign) ObjectTrackingInfoList objTrackList;
 @property(nonatomic) long webrtcAPIs;
+@property(nonatomic) BOOL inShutdown;
 
 @property(nonatomic, copy) void (^onFling)(CGPoint translation, CGPoint velocity);
 @property(nonatomic, copy) void (^onDownloadCompleted)(int result);

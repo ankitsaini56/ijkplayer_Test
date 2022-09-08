@@ -38,8 +38,8 @@
 #import "Nebula_interface.h"
 #include "string.h"
 
-static const char *kIJKFFRequiredFFmpegVersion = "0.4.7";
-static const char *kIJKVideoViewVersion = "0.9.18";
+static const char *kIJKFFRequiredFFmpegVersion = "0.4.9";
+static const char *kIJKVideoViewVersion = "0.9.22";
 static const int MIN_DISTANCE = 5;
 static const float TRACKING_SPEED = 0.05f;
 static const int TRACKING_THRESHOLD_IN_SECONDS = 3;
@@ -141,13 +141,15 @@ static const int TRACKING_THRESHOLD_IN_SECONDS = 3;
     didChangeConnectionState:(RTCIceConnectionState)state {
     NSLog(@"ICE state changed: %ld", (long)state);
     if (state == RTCIceConnectionStateDisconnected) {
-        [[NSNotificationCenter defaultCenter]
-         postNotificationName:IJKMPMoviePlayerPlaybackDidFinishNotification
-         object:self
-         userInfo:@{
-                    IJKMPMoviePlayerPlaybackDidFinishReasonUserInfoKey: @(IJKMPMovieFinishReasonPlaybackError),
-                    @"error": @(0)}];
-        [self shutdown];
+        if (!self.inShutdown) {
+            [[NSNotificationCenter defaultCenter]
+             postNotificationName:IJKMPMoviePlayerPlaybackDidFinishNotification
+             object:self
+             userInfo:@{
+                        IJKMPMoviePlayerPlaybackDidFinishReasonUserInfoKey: @(IJKMPMovieFinishReasonPlaybackError),
+                        @"error": @(0)}];
+            [self shutdown];
+        }
     }
 }
 
@@ -328,6 +330,7 @@ void IJKFFIOStatCompleteRegister(void (*cb)(const char *url,
         _scalingMode = IJKMPMovieScalingModeAspectFit;
         _shouldAutoplay = YES;
         _monitor = [[IJKFFMonitor alloc] init];
+        _inShutdown = NO;
         
         // init media resource
         _urlString = aUrlString;
@@ -449,6 +452,7 @@ void IJKFFIOStatCompleteRegister(void (*cb)(const char *url,
         _scalingMode = IJKMPMovieScalingModeAspectFit;
         _shouldAutoplay = YES;
         _monitor = [[IJKFFMonitor alloc] init];
+        _inShutdown = NO;
         
         // init media resource
         _urlString = aUrlString;
@@ -576,6 +580,7 @@ void IJKFFIOStatCompleteRegister(void (*cb)(const char *url,
     if (!_mediaPlayer)
         return;
     
+    self.inShutdown = NO;
     self.currentX = -1;
     self.currentY = -1;
     self.lastFoundObjectTime = -1.0;
@@ -762,7 +767,7 @@ inline static int getPlayerOption(IJKFFOptionCategory category)
     if (!_mediaPlayer)
         return;
     
-    
+    self.inShutdown = YES;
     ijkmp_stop(_mediaPlayer);
     [_glView stop];
     [self stopHudTimer];

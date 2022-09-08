@@ -10,6 +10,8 @@
 
 #import "ARDAppClient+Internal.h"
 
+#import <WebRTC/RTCAudioSession.h>
+#import <WebRTC/RTCAudioSessionConfiguration.h>
 #import <WebRTC/RTCAudioTrack.h>
 #import <WebRTC/RTCCameraVideoCapturer.h>
 #import <WebRTC/RTCConfiguration.h>
@@ -650,6 +652,13 @@ static int const kKbpsMultiplier = 1000;
     }
   }
   
+  long ret = 0;
+  BOOL useTurnInfoCache = NO;
+  static NSDictionary *sContent = nil;
+  static CFAbsoluteTime sLastResponseTimestamp = 0.0;
+  static int sTtl = 0;
+  kRtcId = nil;
+    
   //Start WebRTC
   if(!settings.isQuickConnect) {
     NSString *startWebRtcCmd = [self genStartWebRtc:settings.dmToken realm:settings.realm info:settings.info channelId:settings.channelId streamId:kStreamId];
@@ -668,6 +677,15 @@ static int const kKbpsMultiplier = 1000;
     kRtcId = content[@"rtcId"];
     [self.iceServers addObjectsFromArray:[self buildIceServer:content]];
   }else {
+    int ttl = sTtl / 2;
+    if (CFAbsoluteTimeGetCurrent() - sLastResponseTimestamp < ttl) {
+      useTurnInfoCache = YES;
+      [self.iceServers addObjectsFromArray:[self buildIceServer:sContent]];
+      self.isTurnComplete = YES;
+      self.isInitiator = TRUE;
+      ret = [self startSignalingIfReady];
+    }
+      
     NSString *startWebRtcExCmd = [self genStartWebRtcEx:settings.dmToken realm:settings.realm info:settings.info channelId:settings.channelId streamType:settings.streamType];
     char *obj = [self sendCommand:startWebRtcExCmd];
     if(obj == nil) {
@@ -682,7 +700,9 @@ static int const kKbpsMultiplier = 1000;
     }
     NSDictionary *content = json[@"content"];
     kRtcId = content[@"rtcId"];
-    [self.iceServers addObjectsFromArray:[self buildIceServer:content]];
+    if (!useTurnInfoCache) {
+      [self.iceServers addObjectsFromArray:[self buildIceServer:content]];
+    }
     NSArray *channels = content[@"channels"];
     if(channels == nil) {
       NSLog(@"no channels of startLiveStreamEx content response");
@@ -692,11 +712,20 @@ static int const kKbpsMultiplier = 1000;
     NSString *url = channel[@"url"];
     NSArray *sepratedUrl = [url componentsSeparatedByString:@"/"];
     kStreamId = sepratedUrl.lastObject;
+
+    sContent = content;
+    sLastResponseTimestamp = CFAbsoluteTimeGetCurrent();
+    NSNumber *ttlNumber = content[@"ttl"];
+    sTtl = [ttlNumber intValue];
   }
   
-  self.isTurnComplete = YES;
-  self.isInitiator = TRUE;
-  return [self startSignalingIfReady];
+  if (!useTurnInfoCache) {
+    self.isTurnComplete = YES;
+    self.isInitiator = TRUE;
+    ret = [self startSignalingIfReady];
+  }
+
+  return ret;
 }
 
 - (void)disconnect {
@@ -857,7 +886,7 @@ static int const kKbpsMultiplier = 1000;
 - (void)peerConnection:(RTC_OBJC_TYPE(RTCPeerConnection) *)peerConnection
 didCreateSessionDescription:(RTC_OBJC_TYPE(RTCSessionDescription) *)sdp
                  error:(NSError *)error {
-    dispatch_async(dispatch_get_main_queue(), ^{
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         if (error) {
             NSLog(@"Failed to create session description. Error: %@", error);
             [self disconnect];
@@ -879,20 +908,8 @@ didCreateSessionDescription:(RTC_OBJC_TYPE(RTCSessionDescription) *)sdp
      didSetSessionDescriptionWithError:error];
         }];
         
-        int count = 0;
-        NSUInteger size = 0;
-        while(self.iceGatherState != RTCIceGatheringStateComplete) {
-            if([self.iceCandidates count] != size) {
-                size = [self.iceCandidates count];
-                count = 0;
-            }else {
-                if(count == 5) {
-                    break;
-                }else {
-                    count++;
-                }
-            }
-            usleep(100000);
+        while(self.iceGatherState != RTCIceGatheringStateComplete || !self.hasJoinedRoomServerRoom) {
+            usleep(20000);
         }
         NSString *offer = [self combineOfferWithIceCandidate:sdp.sdp];
 #if IS_DEBUG
@@ -967,16 +984,6 @@ didCreateSessionDescription:(RTC_OBJC_TYPE(RTCSessionDescription) *)sdp
                                          error:error];
              }];
     }
-
-      //
-      // <HACK> reset audio session to overwrite RTCAudioSession setting
-      //
-      [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryPlayAndRecord withOptions:
-       AVAudioSessionCategoryOptionDuckOthers|
-       AVAudioSessionCategoryOptionAllowBluetooth |
-       AVAudioSessionCategoryOptionDefaultToSpeaker error:nil];
-      [[AVAudioSession sharedInstance] setMode:AVAudioSessionModeDefault error:nil];
-      [[AVAudioSession sharedInstance] setActive:YES error:nil];
   });
 }
 
@@ -1006,7 +1013,7 @@ didCreateSessionDescription:(RTC_OBJC_TYPE(RTCSessionDescription) *)sdp
 // audio and video capture. If this client is the caller, an offer is created as
 // well, otherwise the client will wait for an offer to arrive.
 - (long)startSignalingIfReady {
-  if (!_isTurnComplete || !self.hasJoinedRoomServerRoom) {
+  if (!_isTurnComplete) {
     return 0;
   }
   self.state = kARDAppClientStateConnected;
@@ -1024,6 +1031,14 @@ didCreateSessionDescription:(RTC_OBJC_TYPE(RTCSessionDescription) *)sdp
   config.rtcpMuxPolicy = RTCRtcpMuxPolicyRequire;
   config.disableLinkLocalNetworks = YES;
 
+  RTC_OBJC_TYPE(RTCAudioSessionConfiguration) *webRTCConfig = [RTC_OBJC_TYPE(RTCAudioSessionConfiguration) webRTCConfiguration];
+  webRTCConfig.category = AVAudioSessionCategoryPlayAndRecord;
+  webRTCConfig.categoryOptions = AVAudioSessionCategoryOptionDuckOthers |
+    AVAudioSessionCategoryOptionAllowBluetooth |
+    AVAudioSessionCategoryOptionDefaultToSpeaker;
+  webRTCConfig.mode = AVAudioSessionModeDefault;
+  [RTC_OBJC_TYPE(RTCAudioSessionConfiguration) setWebRTCConfiguration:webRTCConfig];
+      
   _peerConnection = [_factory peerConnectionWithConfiguration:config
                                                   constraints:constraints
                                                      delegate:self];

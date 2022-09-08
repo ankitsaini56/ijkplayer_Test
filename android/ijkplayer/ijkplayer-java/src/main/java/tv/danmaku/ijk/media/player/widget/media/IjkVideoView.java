@@ -106,7 +106,7 @@ public class IjkVideoView extends FrameLayout implements
     }
 
     private static String TAG = "IjkVideoView";
-    private static String VERSION = "0.9.19";
+    private static String VERSION = "0.9.22";
 
     // settable by the client
     private Uri mUri = null;
@@ -2168,8 +2168,14 @@ public class IjkVideoView extends FrameLayout implements
             }
         });*/
         logAndToast("DTLS disconnected");
-        mErrorListener.onError(mMediaPlayer, MediaPlayer.MEDIA_ERROR_UNKNOWN, 0);
-        this.stopPlayback();
+
+        //
+        // <INFO>: don't trigger onError callback if player in stopped state
+        //
+        if (mCurrentState != STATE_IDLE) {
+            mErrorListener.onError(mMediaPlayer, MediaPlayer.MEDIA_ERROR_UNKNOWN, 0);
+            this.stopPlayback();
+        }
         //connected = false;
         disconnect();
     }

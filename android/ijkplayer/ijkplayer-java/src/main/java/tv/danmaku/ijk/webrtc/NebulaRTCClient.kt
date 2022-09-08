@@ -16,6 +16,12 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 class NebulaRTCClient : AppRTCClient {
+    companion object {
+        private var gStartWebRTCResponse = ""
+        private var gLastResponseTimestamp = 0L
+        private var gTtl = 0
+    }
+
     private val TAG = "NebulaRTCClient"
     private val TIMEOUT_IN_MS = 30000
     private var mConnectionParameters: RoomConnectionParameters? = null
@@ -366,6 +372,7 @@ class NebulaRTCClient : AppRTCClient {
             }
         }
 
+        var useTurnInfoCache = false
         //send startWebRtc
         if(mConnectionParameters?.nebulaParameters?.isQuickConnect != true) {
             if (mConnectionParameters?.nebulaParameters?.dmToken != null) {
@@ -389,6 +396,15 @@ class NebulaRTCClient : AppRTCClient {
             }
         }else {
             if (mConnectionParameters?.nebulaParameters?.dmToken != null) {
+                val ttl = gTtl / 2
+                if (System.currentTimeMillis() - gLastResponseTimestamp < ttl * 1000) {
+                    useTurnInfoCache = true
+                    var json = JSONObject(gStartWebRTCResponse)
+                    val content = json.optJSONObject("content")
+                    buildIceServer(content)
+                    createOffer(null)
+                }
+
                 response = clientSend(genStartWebRtcExJson().toString()) ?: return -1
                 Log.d(TAG, "startwebrtcex response=$response")
                 var startResJson = JSONObject(response)
@@ -401,13 +417,22 @@ class NebulaRTCClient : AppRTCClient {
                     if (DEBUG) {
                         Log.e(TAG, "startWebRTC success rtcid: $mRtcId")
                     }
-                    buildIceServer(content)
+                    if (!useTurnInfoCache) {
+                        buildIceServer(content)
+                    }
                     mChannelsResponse = content.optJSONArray("channels")
+                    if (System.currentTimeMillis() - gLastResponseTimestamp >= ttl * 1000) {
+                        gStartWebRTCResponse = response
+                        gTtl = content.optInt("ttl")
+                        gLastResponseTimestamp = System.currentTimeMillis()
+                    }
                 }
             }
         }
         //send exchangeSdp
-        createOffer(null)
+        if (!useTurnInfoCache) {
+            createOffer(null)
+        }
         return 0
     }
 
@@ -415,8 +440,8 @@ class NebulaRTCClient : AppRTCClient {
         mOfferSdp = sdp
         var response:String? = null
         Executors.newSingleThreadExecutor().execute {
-            while(!mIsGatheringCandidateDone) {
-                sleep(200)
+            while(!mIsGatheringCandidateDone || mRtcId == 0) {
+                sleep(20)
             }
             val json = buildOfferSDPResponseJson(mOfferSdp)
             response = clientSend(json.toString())
@@ -528,30 +553,15 @@ class NebulaRTCClient : AppRTCClient {
     override fun sendLocalIceCandidate(candidate: IceCandidate?) {
         if (candidate != null) {
             Log.d(TAG, "grab candidate $candidate")
-//            mIceGatheringTimerAbort = true
             if(mIsGatheringCandidateDone) {
                 Log.i(TAG, "already gathering done")
             }
             if (!isLocalNetwork(candidate)) {
                 mOfferCandidates.add(candidate)
             }
-            mIceGatheringTimerCount = 5
-            if(!mIceGatheringStarted) {
-                mIceGatheringTimerExecutor.execute {
-//                    mIceGatheringTimerAbort = false
-                    while(mIceGatheringTimerCount != 0/* && !mIceGatheringTimerAbort*/) {
-                        sleep(100)
-                        mIceGatheringTimerCount--
-                        Log.d(TAG, "count=$mIceGatheringTimerCount")
-                    }
-                    if(mIceGatheringTimerCount == 0) {
-                        Log.i(TAG, "gathering timeout");
-                        mIsGatheringCandidateDone = true
-                    }
-                }
-                mIceGatheringStarted = true
+            if (candidate.sdp.contains("typ relay")) {
+                mIsGatheringCandidateDone = true
             }
-
         }
         else {
             Log.d(TAG, "grab candidate done")
