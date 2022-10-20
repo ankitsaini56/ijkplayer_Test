@@ -80,6 +80,7 @@ import tv.danmaku.ijk.media.player.IjkMediaPlayer;
 import tv.danmaku.ijk.media.player.IjkTimedText;
 import tv.danmaku.ijk.media.player.RawDataSourceProvider;
 import tv.danmaku.ijk.media.player.misc.ITrackInfo;
+import tv.danmaku.ijk.media.player.misc.IjkAudioFrame;
 import tv.danmaku.ijk.media.player.misc.IjkFrame;
 import tv.danmaku.ijk.media.player.misc.ObjectTrackingInfo;
 import tv.danmaku.ijk.media.player.misc.Rect;
@@ -106,7 +107,7 @@ public class IjkVideoView extends FrameLayout implements
     }
 
     private static String TAG = "IjkVideoView";
-    private static String VERSION = "0.9.22";
+    private static String VERSION = "0.9.29";
 
     // settable by the client
     private Uri mUri = null;
@@ -189,6 +190,7 @@ public class IjkVideoView extends FrameLayout implements
     private int mBufferThreshold = 0;
     private int mAvapiTimeout = 0;
     private boolean mDebug = true;
+    private int mAudioSessionId = AudioManager.AUDIO_SESSION_ID_GENERATE;
 
     private Context mAppContext;
     private IRenderView mRenderView;
@@ -999,6 +1001,13 @@ public class IjkVideoView extends FrameLayout implements
         return 0;
     }
 
+    public int getRecordingPosition() {
+        if (isInPlaybackState()) {
+            return (int) mMediaPlayer.getRecordingPosition();
+        }
+        return 0;
+    }
+
     public int getRealTime() {
         if (isInPlaybackState()) {
             return (int) mMediaPlayer.getRealTime();
@@ -1179,6 +1188,8 @@ public class IjkVideoView extends FrameLayout implements
             ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "max-buffer-size", mMaxBufferSize);
         }
 
+        ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "audio-session-id", mAudioSessionId);
+
         return ijkMediaPlayer;
     }
 
@@ -1216,6 +1227,26 @@ public class IjkVideoView extends FrameLayout implements
 
         IjkFrame ret = ((IjkMediaPlayer) mMediaPlayer).getFrame();
         return ret;
+    }
+
+    public IjkAudioFrame getAudioFrame() {
+        if (mMediaPlayer == null) {
+            return null;
+        }
+
+        IjkAudioFrame frame = new IjkAudioFrame();
+        int [] sampleRate = new int[1];
+        int [] channels = new int[1];
+        int [] bitsPerSample = new int[1];
+        byte[] data = ((IjkMediaPlayer) mMediaPlayer).getAudioFrame(sampleRate, channels, bitsPerSample);
+        if (data.length <= 0) {
+            return null;
+        }
+        frame.data = data;
+        frame.sampleRate = sampleRate[0];
+        frame.channels = channels[0];
+        frame.bitsPerSample = bitsPerSample[0];
+        return frame;
     }
 
     public void enableGetFrame() {
@@ -1356,6 +1387,10 @@ public class IjkVideoView extends FrameLayout implements
 
     public void setBufferThreshold(int threshold) {
         mBufferThreshold = threshold;
+    }
+
+    public void setAudioSessionId(int audioSessionId) {
+        mAudioSessionId = audioSessionId;
     }
 
     public float getVolume() {

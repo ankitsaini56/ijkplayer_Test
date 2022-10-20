@@ -46,14 +46,14 @@ typedef struct J4AC_android_media_AudioTrack {
 } J4AC_android_media_AudioTrack;
 static J4AC_android_media_AudioTrack class_J4AC_android_media_AudioTrack;
 
-jobject J4AC_android_media_AudioTrack__AudioTrack(JNIEnv *env, jint streamType, jint sampleRateInHz, jint channelConfig, jint audioFormat, jint bufferSizeInBytes, jint mode)
+jobject J4AC_android_media_AudioTrack__AudioTrack(JNIEnv *env, jint streamType, jint sampleRateInHz, jint channelConfig, jint audioFormat, jint bufferSizeInBytes, jint mode, jint audioSessionId)
 {
-    return (*env)->NewObject(env, class_J4AC_android_media_AudioTrack.id, class_J4AC_android_media_AudioTrack.constructor_AudioTrack, streamType, sampleRateInHz, channelConfig, audioFormat, bufferSizeInBytes, mode);
+    return (*env)->NewObject(env, class_J4AC_android_media_AudioTrack.id, class_J4AC_android_media_AudioTrack.constructor_AudioTrack, streamType, sampleRateInHz, channelConfig, audioFormat, bufferSizeInBytes, mode, audioSessionId);
 }
 
-jobject J4AC_android_media_AudioTrack__AudioTrack__catchAll(JNIEnv *env, jint streamType, jint sampleRateInHz, jint channelConfig, jint audioFormat, jint bufferSizeInBytes, jint mode)
+jobject J4AC_android_media_AudioTrack__AudioTrack__catchAll(JNIEnv *env, jint streamType, jint sampleRateInHz, jint channelConfig, jint audioFormat, jint bufferSizeInBytes, jint mode, jint audioSessionId)
 {
-    jobject ret_object = J4AC_android_media_AudioTrack__AudioTrack(env, streamType, sampleRateInHz, channelConfig, audioFormat, bufferSizeInBytes, mode);
+    jobject ret_object = J4AC_android_media_AudioTrack__AudioTrack(env, streamType, sampleRateInHz, channelConfig, audioFormat, bufferSizeInBytes, mode, audioSessionId);
     if (J4A_ExceptionCheck__catchAll(env) || !ret_object) {
         return NULL;
     }
@@ -61,10 +61,10 @@ jobject J4AC_android_media_AudioTrack__AudioTrack__catchAll(JNIEnv *env, jint st
     return ret_object;
 }
 
-jobject J4AC_android_media_AudioTrack__AudioTrack__asGlobalRef__catchAll(JNIEnv *env, jint streamType, jint sampleRateInHz, jint channelConfig, jint audioFormat, jint bufferSizeInBytes, jint mode)
+jobject J4AC_android_media_AudioTrack__AudioTrack__asGlobalRef__catchAll(JNIEnv *env, jint streamType, jint sampleRateInHz, jint channelConfig, jint audioFormat, jint bufferSizeInBytes, jint mode, jint audioSessionId)
 {
     jobject ret_object   = NULL;
-    jobject local_object = J4AC_android_media_AudioTrack__AudioTrack__catchAll(env, streamType, sampleRateInHz, channelConfig, audioFormat, bufferSizeInBytes, mode);
+    jobject local_object = J4AC_android_media_AudioTrack__AudioTrack__catchAll(env, streamType, sampleRateInHz, channelConfig, audioFormat, bufferSizeInBytes, mode, audioSessionId);
     if (J4A_ExceptionCheck__catchAll(env) || !local_object) {
         ret_object = NULL;
         goto fail;
@@ -365,7 +365,7 @@ int J4A_loadClass__J4AC_android_media_AudioTrack(JNIEnv *env)
 
     class_id = class_J4AC_android_media_AudioTrack.id;
     name     = "<init>";
-    sign     = "(IIIIII)V";
+    sign     = "(IIIIIII)V";
     class_J4AC_android_media_AudioTrack.constructor_AudioTrack = J4A_GetMethodID__catchAll(env, class_id, name, sign);
     if (class_J4AC_android_media_AudioTrack.constructor_AudioTrack == NULL)
         goto fail;

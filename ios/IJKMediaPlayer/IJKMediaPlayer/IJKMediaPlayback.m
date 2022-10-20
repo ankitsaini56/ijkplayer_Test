@@ -58,6 +58,7 @@ NSString *const IJKMPMoviePlayerSeekVideoStartNotification  = @"IJKMPMoviePlayer
 NSString *const IJKMPMoviePlayerPlayFrameDroppedNotification = @"IJKMPMoviePlayerPlayFrameDroppedNotification";
 NSString *const IJKMPMoviePlayerPlayFrameNotDroppedNotification = @"IJKMPMoviePlayerPlayFrameNotDroppedNotification";
 NSString *const IJKMPMoviePlayerVideoRecordCompleteNotification = @"IJKMPMoviePlayerVideoRecordCompleteNotification";
+NSString *const IJKMPMoviePlayerVideoRecordStartNotification = @"IJKMPMoviePlayerVideoRecordStartNotification";
 
 NSString *const IJKStreamTypeAudioAndVideo = @"audioAndVideo";
 NSString *const IJKStreamTypeAudioAndSubVideo = @"audioAndSubVideo";

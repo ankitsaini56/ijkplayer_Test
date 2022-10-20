@@ -1039,6 +1039,27 @@ long ffp_get_frame_l(FFPlayer *ffp, uint8_t **data, int *width, int *height, uns
     return 0;
 }
 
+long ffp_get_audio_l(FFPlayer *ffp, uint8_t **data, int *size, int *sample_rate, int *channels, int *bits_per_sample)
+{
+    VideoState *is = ffp->is;
+
+    if (is == NULL) {
+        return -1;
+    }
+    
+    *sample_rate = is->audio_sample_rate;
+    *channels = is->audio_channels;
+    *bits_per_sample = is->audio_bits_per_sample;
+
+    SDL_LockMutex(is->pcm_mutex);
+    *size = is->pcm_size;
+    *data = (uint8_t *)malloc(is->pcm_size);
+    memcpy(*data, is->pcm_data, is->pcm_size);
+    is->pcm_size = 0;
+    SDL_UnlockMutex(is->pcm_mutex);
+    return 0;
+}
+
 enum AVPixelFormat getPixelFormat(SDL_VoutOverlay *overlay)
 {
     switch(overlay->format) {
@@ -1315,6 +1336,7 @@ static void stream_close(FFPlayer *ffp)
     SDL_DestroyMutex(is->seek_mutex);
     SDL_DestroyMutex(is->play_mutex);
     SDL_DestroyMutex(is->frame_mutex);
+    SDL_DestroyMutex(is->pcm_mutex);
     if (is->yuv_to_rgba_ctx) {
         sws_freeContext(is->yuv_to_rgba_ctx);
         is->yuv_to_rgba_ctx = NULL;
@@ -2792,13 +2814,11 @@ static int audio_decode_frame(FFPlayer *ffp)
     }
 reload:
     do {
-#if defined(_WIN32) || defined(__APPLE__)
         while (frame_queue_nb_remaining(&is->sampq) == 0) {
-            if ((av_gettime_relative() - ffp->audio_callback_time) > 5000LL)
+            if ((av_gettime_relative() - ffp->audio_callback_time) > 200000LL)
                 return -1;
             av_usleep (1000);
         }
-#endif
         if (!(af = frame_queue_peek_readable(&is->sampq)))
             return -1;
         frame_queue_next(&is->sampq);
@@ -2945,6 +2965,8 @@ static void sdl_audio_callback(void *opaque, Uint8 *stream, int len)
     }
 
     ffp->audio_callback_time = av_gettime_relative();
+    Uint8 *stream_orig = stream;
+    int len_orig = len;
 
     if (ffp->pf_playback_rate_changed) {
         ffp->pf_playback_rate_changed = 0;
@@ -2999,7 +3021,7 @@ static void sdl_audio_callback(void *opaque, Uint8 *stream, int len)
     }
     is->audio_write_buf_size = is->audio_buf_size - is->audio_buf_index;
     /* Let's assume the audio driver that is used by SDL has two periods. */
-    if (!isnan(is->audio_clock) && audio_size >= 0) {
+    if (!isnan(is->audio_clock)) {
         set_clock_at(&is->audclk, is->audio_clock - (double)(is->audio_write_buf_size) / is->audio_tgt.bytes_per_sec - SDL_AoutGetLatencySeconds(ffp->aout), is->audio_clock_serial, ffp->audio_callback_time / 1000000.0);
         sync_clock_to_slave(&is->extclk, &is->audclk);
     }
@@ -3024,6 +3046,13 @@ static void sdl_audio_callback(void *opaque, Uint8 *stream, int len)
             SDL_Delay(20);
         }
     }
+
+    SDL_LockMutex(is->pcm_mutex);
+    if (is->pcm_size + len_orig <= PCM_BUFFER_SIZE) {
+        memcpy(&is->pcm_data[is->pcm_size], stream_orig, len_orig);
+        is->pcm_size += len_orig;
+    }
+    SDL_UnlockMutex(is->pcm_mutex);
 }
 
 static int audio_open(FFPlayer *opaque, int64_t wanted_channel_layout, int wanted_nb_channels, int wanted_sample_rate, int wanted_bits_per_sample, struct AudioParams *audio_hw_params)
@@ -3072,6 +3101,7 @@ static int audio_open(FFPlayer *opaque, int64_t wanted_channel_layout, int wante
     wanted_spec.callback = sdl_audio_callback;
     wanted_spec.userdata = opaque;
     wanted_spec.enable_aec = ffp->enable_aec;
+    wanted_spec.audio_session_id = ffp->audio_session_id;
     while (SDL_AoutOpenAudio(ffp->aout, &wanted_spec, &spec) < 0) {
         /* avoid infinity loop on exit. --by bbcallen */
         if (is->abort_request)
@@ -3099,12 +3129,15 @@ static int audio_open(FFPlayer *opaque, int64_t wanted_channel_layout, int wante
         }
     }
 
+    is->audio_sample_rate = spec.freq;
+    is->audio_channels = spec.channels;
+
     int audio_fmt;
     switch(spec.format) {
-        case AUDIO_U8: audio_fmt = AV_SAMPLE_FMT_U8; break;
-        case AUDIO_S16SYS: audio_fmt = AV_SAMPLE_FMT_S16; break;
-        case AUDIO_S32SYS: audio_fmt = AV_SAMPLE_FMT_S32; break;
-        default: audio_fmt = AV_SAMPLE_FMT_S16; break;
+        case AUDIO_U8: audio_fmt = AV_SAMPLE_FMT_U8; is->audio_bits_per_sample = 8; break;
+        case AUDIO_S16SYS: audio_fmt = AV_SAMPLE_FMT_S16; is->audio_bits_per_sample = 16; break;
+        case AUDIO_S32SYS: audio_fmt = AV_SAMPLE_FMT_S32; is->audio_bits_per_sample = 32; break;
+        default: audio_fmt = AV_SAMPLE_FMT_S16; is->audio_bits_per_sample = 16; break;
     }
 
     audio_hw_params->fmt = audio_fmt;
@@ -3724,8 +3757,9 @@ static int read_thread(void *arg)
     int out_video_index = -1;
     int out_audio_index = -1;
     bool key_frame_found = false;
-    int64_t video_start_pts = AV_NOPTS_VALUE;
     int64_t audio_start_pts = AV_NOPTS_VALUE;
+    is->recording_start_pts = AV_NOPTS_VALUE;
+    is->recording_current_pts = AV_NOPTS_VALUE;
 
     if (!wait_mutex) {
         av_log(NULL, AV_LOG_FATAL, "SDL_CreateMutex(): %s\n", SDL_GetError());
@@ -4001,7 +4035,6 @@ static int read_thread(void *arg)
     int video_record_stoping = 0;
     int video_record_ready_to_stop = 0;
     int video_record_error = 0;
-    int64_t video_pts = -1;
     int64_t audio_pts = -1;
     int64_t video_duration_msec = 0;
     int64_t audio_duration_msec = 0;
@@ -4342,7 +4375,7 @@ static int read_thread(void *arg)
         if (oc) {
             if (pkt->stream_index == is->video_stream) {
                 if (!video_record_stoping || video_duration_msec < audio_duration_msec) {
-                    if (prev_video_pts != AV_NOPTS_VALUE && prev_video_pts == pkt->pts) {
+                    if (ffp->hack_claire_control && prev_video_pts != AV_NOPTS_VALUE && prev_video_pts == pkt->pts) {
                         video_record_error = -2;
                         video_record_ready_to_stop = 1;
                         ffp->video_record_path = NULL;
@@ -4350,21 +4383,25 @@ static int read_thread(void *arg)
                     prev_video_pts = pkt->pts;
                     if ((pkt->flags & AV_PKT_FLAG_KEY) && !key_frame_found) {
                         key_frame_found = true;
-                        video_start_pts = pkt->pts;
+                        ffp_notify_msg1(ffp, FFP_MSG_VIDEO_RECORD_START);
                     }
 
                     if (key_frame_found) {
+                        if (is->recording_start_pts == AV_NOPTS_VALUE) {
+                            is->recording_start_pts = pkt->pts;
+                        }
+
                         AVPacket out_pkt;
                         av_init_packet(&out_pkt);
                         av_packet_ref(&out_pkt, pkt);
                         out_pkt.stream_index = out_video_index;
-                        out_pkt.pts -= video_start_pts;
+                        out_pkt.pts -= is->recording_start_pts;
                         out_pkt.dts = out_pkt.pts;
-                        video_pts = pkt->pts;
+                        is->recording_current_pts = pkt->pts;
                         av_write_frame(oc, &out_pkt);
                         av_packet_unref(&out_pkt);
 
-                        video_duration_msec = av_rescale_q(video_pts - video_start_pts, is->video_st->time_base, av_d2q(0.001, INT_MAX));
+                        video_duration_msec = av_rescale_q(is->recording_current_pts - is->recording_start_pts, is->video_st->time_base, av_d2q(0.001, INT_MAX));
 
                         uint64_t now = av_gettime_relative() / 1000;
                         if (video_record_stoping && (video_duration_msec >= audio_duration_msec || now - stop_recording_starttime_msec >= STOP_RECORDING_TIMEOUT_MSEC)) {
@@ -4398,8 +4435,8 @@ static int read_thread(void *arg)
         }
 
         if (oc) {
-            if (pkt->stream_index == is->video_stream && video_start_pts != -1 && ffp->video_record_duration > 0) {
-                int duration = (pkt->pts - video_start_pts) * av_q2d(is->video_st->time_base);
+            if (pkt->stream_index == is->video_stream && is->recording_start_pts != -1 && ffp->video_record_duration > 0) {
+                int duration = (pkt->pts - is->recording_start_pts) * av_q2d(is->video_st->time_base);
                 if (duration >= ffp->video_record_duration) {
                     ffp->video_record_path = NULL;
                 }
@@ -4416,7 +4453,7 @@ static int read_thread(void *arg)
                 video_record_ready_to_stop = 0;
                 ret = stop_video_record(oc, &ac);
                 key_frame_found = false;
-                video_start_pts = AV_NOPTS_VALUE;
+                is->recording_start_pts = AV_NOPTS_VALUE;
                 audio_start_pts = AV_NOPTS_VALUE;
                 prev_video_pts = AV_NOPTS_VALUE;
                 audio_duration_msec = 0;
@@ -4552,6 +4589,13 @@ static VideoState *stream_open(FFPlayer *ffp, const char *filename, AVInputForma
         av_log(NULL, AV_LOG_WARNING, "-volume=%d < 0, setting to 0\n", ffp->startup_volume);
     if (ffp->startup_volume > 100)
         av_log(NULL, AV_LOG_WARNING, "-volume=%d > 100, setting to 100\n", ffp->startup_volume);
+
+    //
+    // <HACK> fix toMp4 audio jitter on some devices issue
+    //
+    if (ffp->startup_volume == 0) {
+        ffp_set_playback_volume(ffp, ffp->startup_volume / 100.0);
+    }
     ffp->startup_volume = av_clip(ffp->startup_volume, 0, 100);
     ffp->startup_volume = av_clip(SDL_MIX_MAXVOLUME * ffp->startup_volume / 100, 0, SDL_MIX_MAXVOLUME);
     is->audio_volume = ffp->startup_volume;
@@ -4562,6 +4606,7 @@ static VideoState *stream_open(FFPlayer *ffp, const char *filename, AVInputForma
     is->accurate_seek_mutex = SDL_CreateMutex();
     is->seek_mutex = SDL_CreateMutex();
     is->frame_mutex = SDL_CreateMutex();
+    is->pcm_mutex = SDL_CreateMutex();
     ffp->is = is;
     is->pause_req = !ffp->start_on_prepared;
 
@@ -5214,6 +5259,17 @@ int ffp_seek_to_l(FFPlayer *ffp, uint64_t msec)
     av_log(ffp, AV_LOG_DEBUG, "stream_seek %"PRId64"(%d) + %"PRId64", \n", seek_pos, (int)msec, start_time);
     stream_seek(is, seek_pos, 0, 0);
     return 0;
+}
+
+long ffp_get_recording_position_l(FFPlayer *ffp)
+{
+    assert(ffp);
+    VideoState *is = ffp->is;
+    if (!is || !is->video_st || is->recording_start_pts == AV_NOPTS_VALUE) {
+        return 0;
+    }
+
+    return av_rescale_q(is->recording_current_pts - is->recording_start_pts, is->video_st->time_base, av_d2q(0.001, INT_MAX));
 }
 
 long ffp_get_current_position_l(FFPlayer *ffp)

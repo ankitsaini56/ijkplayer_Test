@@ -624,8 +624,7 @@ public class PeerConnectionClient {
     rtcConfig.bundlePolicy = PeerConnection.BundlePolicy.MAXBUNDLE;
     rtcConfig.rtcpMuxPolicy = PeerConnection.RtcpMuxPolicy.REQUIRE;
     rtcConfig.continualGatheringPolicy = PeerConnection.ContinualGatheringPolicy.GATHER_ONCE;
-    // Use ECDSA encryption.
-    rtcConfig.keyType = PeerConnection.KeyType.ECDSA;
+    rtcConfig.keyType = PeerConnection.KeyType.RSA;
     // Enable DTLS for normal calls and disable for loopback calls.
 //    rtcConfig.enableDtlsSrtp = !peerConnectionParameters.loopback;
     rtcConfig.sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN;

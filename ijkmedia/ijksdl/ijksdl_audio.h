@@ -87,6 +87,7 @@ typedef struct SDL_AudioSpec
     Uint16 padding;             /**< NOT USED. Necessary for some compile environments */
     Uint32 size;                /**< Audio buffer size in bytes (calculated) */
     Uint32 enable_aec;
+    Uint32 audio_session_id;
     SDL_AudioCallback callback;
     void *userdata;
 } SDL_AudioSpec;

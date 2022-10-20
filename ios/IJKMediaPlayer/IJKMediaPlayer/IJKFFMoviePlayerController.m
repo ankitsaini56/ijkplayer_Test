@@ -38,8 +38,8 @@
 #import "Nebula_interface.h"
 #include "string.h"
 
-static const char *kIJKFFRequiredFFmpegVersion = "0.4.9";
-static const char *kIJKVideoViewVersion = "0.9.22";
+static const char *kIJKFFRequiredFFmpegVersion = "0.5.0";
+static const char *kIJKVideoViewVersion = "0.9.29";
 static const int MIN_DISTANCE = 5;
 static const float TRACKING_SPEED = 0.05f;
 static const int TRACKING_THRESHOLD_IN_SECONDS = 3;
@@ -87,6 +87,7 @@ static const int TRACKING_THRESHOLD_IN_SECONDS = 3;
 
 @synthesize view = _view;
 @synthesize currentPlaybackTime;
+@synthesize currentRecordingTime;
 @synthesize duration;
 @synthesize playableDuration;
 @synthesize bufferingProgress = _bufferingProgress;
@@ -114,6 +115,7 @@ static const int TRACKING_THRESHOLD_IN_SECONDS = 3;
 @synthesize isVideoSync = _isVideoSync;
 
 @synthesize RGBAFrame;
+@synthesize AudioFrame;
 @synthesize currentX = _currentX;
 @synthesize currentY = _currentY;
 @synthesize lastFoundObjectTime = _lastFoundObjectTime;
@@ -879,6 +881,18 @@ inline static int getPlayerOption(IJKFFOptionCategory category)
     return ret / 1000;
 }
 
+- (NSTimeInterval)currentRecordingTime
+{
+    if (!_mediaPlayer)
+        return 0.0f;
+    
+    NSTimeInterval ret = ijkmp_get_recording_position(_mediaPlayer);
+    if (isnan(ret) || isinf(ret))
+        return -1;
+    
+    return ret / 1000;
+}
+
 - (NSTimeInterval)realTime
 {
     if (!_mediaPlayer)
@@ -1606,6 +1620,12 @@ inline static void fillMetaInternal(NSMutableDictionary *meta, IjkMediaMeta *raw
             }
             break;
         }
+        case FFP_MSG_VIDEO_RECORD_START: {
+            [[NSNotificationCenter defaultCenter]
+             postNotificationName:IJKMPMoviePlayerVideoRecordStartNotification
+             object:self];
+            break;
+        }
         default:
             // NSLog(@"unknown FFP_MSG_xxx(%d)\n", avmsg->what);
             break;
@@ -1914,6 +1934,18 @@ static int64_t calculateElapsed(int64_t begin, int64_t end)
                 return list;
             }
 
+            NSArray *jsonVector = jsonObj[@"vector"];
+            if (jsonVector) {
+                NSNumber *v = jsonVector[0];
+                NSLog(@"nith1 vector %f", [v floatValue]);
+                int vectorSize = MIN(jsonVector.count, FACE_EMBEDDING_LEN);
+                list.info[list.size].vectorSize = vectorSize;
+                for (int i = 0; i < vectorSize; i++) {
+                    NSNumber *v = jsonVector[i];
+                    list.info[list.size].vector[i] = [v floatValue];
+                }
+            }
+
             if (jsonRect.count >= 4 && list.size < MAX_OBJECT_TRACK) {
                 CGRect r;
                 r.origin.x = [jsonRect[0] intValue];
@@ -1979,6 +2011,29 @@ static int64_t calculateElapsed(int64_t begin, int64_t end)
     
     NSData *nsData = [NSData dataWithBytes:data length:size];
     Frame *frame = [[Frame alloc] initFrame: nsData withWidth:w andHeight:h andObjTrackList:objTrackList];
+
+    free(data);
+    return frame;
+}
+
+- (AudioFrame *)AudioFrame
+{
+    if (!_mediaPlayer) {
+        return nil;
+    }
+
+    uint8_t *data = nil;
+    int size;
+    int sampleRate;
+    int channels;
+    int bitsPerSample;
+    ijkmp_get_audio(_mediaPlayer, &data, &size, &sampleRate, &channels, &bitsPerSample);
+    if (data == nil) {
+        return nil;
+    }
+
+    NSData *nsData = [NSData dataWithBytes:data length:size];
+    AudioFrame *frame = [[AudioFrame alloc] initFrame: nsData withSampleRate: sampleRate withChannels:channels andBitsPerSample:bitsPerSample];
 
     free(data);
     return frame;

@@ -55,6 +55,7 @@
 #define FFP_MSG_FRAME_DROPPED               1100
 #define FFP_MSG_FRAME_NOT_DROPPED           1200
 #define FFP_MSG_VIDEO_RECORD_COMPLETE       1300
+#define FFP_MSG_VIDEO_RECORD_START          1301
 
 #define FFP_MSG_VIDEO_DECODER_OPEN          10001
 

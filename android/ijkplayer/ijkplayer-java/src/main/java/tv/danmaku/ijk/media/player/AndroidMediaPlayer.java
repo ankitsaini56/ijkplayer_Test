@@ -237,6 +237,11 @@ public class AndroidMediaPlayer extends AbstractMediaPlayer {
     }
 
     @Override
+    public long getRecordingPosition() {
+        return 0;
+    }
+
+    @Override
     public long getRealTime() {
         return 0;
     }

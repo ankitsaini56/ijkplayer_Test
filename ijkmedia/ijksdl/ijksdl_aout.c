@@ -109,8 +109,11 @@ void SDL_AoutSetPlaybackRate(SDL_Aout *aout, float playbackRate)
 void SDL_AoutSetPlaybackVolume(SDL_Aout *aout, float volume)
 {
     if (aout) {
-        if (aout->func_set_playback_volume)
+        if (aout->func_set_playback_volume) {
             aout->func_set_playback_volume(aout, volume);
+        } else if (aout->set_volume) {
+            aout->set_volume(aout, volume, volume);
+        }
     }
 }
 

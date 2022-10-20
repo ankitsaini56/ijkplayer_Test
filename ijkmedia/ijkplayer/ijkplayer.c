@@ -617,6 +617,21 @@ long ijkmp_get_current_position(IjkMediaPlayer *mp)
     return retval;
 }
 
+static long ijkmp_get_recording_position_l(IjkMediaPlayer *mp)
+{
+    return ffp_get_recording_position_l(mp->ffplayer);
+}
+
+long ijkmp_get_recording_position(IjkMediaPlayer *mp)
+{
+    assert(mp);
+    pthread_mutex_lock(&mp->mutex);
+    long retval;
+    retval = ijkmp_get_recording_position_l(mp);
+    pthread_mutex_unlock(&mp->mutex);
+    return retval;
+}
+
 static uint32_t ijkmp_get_real_time_l(IjkMediaPlayer *mp)
 {
     return ffp_get_real_time_l(mp->ffplayer);
@@ -834,6 +849,26 @@ long ijkmp_get_frame(IjkMediaPlayer *mp, uint8_t **data, int *w, int *h, unsigne
     assert(mp);
     pthread_mutex_lock(&mp->mutex);
     long retval = ijkmp_get_frame_l(mp, data, w, h, meta);
+    pthread_mutex_unlock(&mp->mutex);
+    return retval;
+}
+
+static long ijkmp_get_audio_l(IjkMediaPlayer *mp, uint8_t **data, int *size, int *sample_rate, int *channels, int *bits_per_sample)
+{
+    MPST_RET_IF_EQ(mp->mp_state, MP_STATE_IDLE);
+    MPST_RET_IF_EQ(mp->mp_state, MP_STATE_INITIALIZED);
+    MPST_RET_IF_EQ(mp->mp_state, MP_STATE_ASYNC_PREPARING);
+    MPST_RET_IF_EQ(mp->mp_state, MP_STATE_STOPPED);
+    MPST_RET_IF_EQ(mp->mp_state, MP_STATE_ERROR);
+    MPST_RET_IF_EQ(mp->mp_state, MP_STATE_END);
+    return ffp_get_audio_l(mp->ffplayer, data, size, sample_rate, channels, bits_per_sample);
+}
+
+long ijkmp_get_audio(IjkMediaPlayer *mp, uint8_t **data, int *size, int *sample_rate, int *channels, int *bits_per_sample)
+{
+    assert(mp);
+    pthread_mutex_lock(&mp->mutex);
+    long retval = ijkmp_get_audio_l(mp, data, size, sample_rate, channels, bits_per_sample);
     pthread_mutex_unlock(&mp->mutex);
     return retval;
 }

@@ -200,6 +200,11 @@ public class IjkExoMediaPlayer extends AbstractMediaPlayer {
     }
 
     @Override
+    public long getRecordingPosition() {
+        return 0;
+    }
+
+    @Override
     public long getRealTime() {
         return 0;
     }

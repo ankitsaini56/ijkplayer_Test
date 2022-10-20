@@ -98,6 +98,8 @@ static const char *WEBRTC_UDID = "your_udid";
 static const char *WEBRTC_CREDENTIAL = "your_credential";
 static const char *WEBRTC_DMTOKEN = "your_dmtoken";
 static const char *WEBRTC_REALM = "your_realm";
+static const int WEBRTC_CHANNEL = IJK_NOCHANNEL_VALUE;
+static const int WEBRTC_EVENT_START_TIME = IJK_NOEVENT_VALUE;
 
 //
 // <INFO>: If live url channel is not 0, need to add account, password, and session-id parameters to url.
@@ -232,9 +234,9 @@ static NebulaClientCtx *clientCtx;
                                     andRealm:@(WEBRTC_REALM)
                                      andNebulaAPI:&nebulaAPIs
                                     andStreamType:IJKStreamTypeAudioAndVideo
-                                     andStartTime:IJK_NOEVENT_VALUE
+                                     andStartTime:WEBRTC_EVENT_START_TIME
                                       andFileName:nil
-                                     andChannelId:IJK_NOCHANNEL_VALUE
+                                     andChannelId:WEBRTC_CHANNEL
                                 andIsQuickConnect:true];
         if (webrtc_id == INVALID_WEBRTC_ID) {
             NSLog(@"start webrtc failed!");
@@ -523,6 +525,11 @@ static NebulaClientCtx *clientCtx;
     }
 }
 
+- (void)videoRecordStart:(NSNotification*)notification
+{
+    NSLog(@"videoRecordStart");
+}
+
 #pragma mark Install Movie Notifications
 
 /* Register observers for the various movie object notifications. */
@@ -561,6 +568,11 @@ static NebulaClientCtx *clientCtx;
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(videoRecordComplete:)
                                                  name:IJKMPMoviePlayerVideoRecordCompleteNotification
+                                               object:_player];
+
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(videoRecordStart:)
+                                                 name:IJKMPMoviePlayerVideoRecordStartNotification
                                                object:_player];
 
 }

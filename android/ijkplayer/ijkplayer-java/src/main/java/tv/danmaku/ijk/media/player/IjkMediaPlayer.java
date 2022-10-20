@@ -683,6 +683,9 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
     public native long getCurrentPosition();
 
     @Override
+    public native long getRecordingPosition();
+
+    @Override
     public native long getRealTime();
 
     @Override
@@ -1311,6 +1314,7 @@ public final class IjkMediaPlayer extends AbstractMediaPlayer {
     public static native void native_setLogLevel(int level);
 
     public native byte [] getRGBAFrame(int [] w, int [] h, String [] meta);
+    public native byte [] getAudioFrame(int [] sampleRate, int [] channels, int [] bitsPerSample);
 
     public IjkFrame getFrame() {
         byte[] pixels;

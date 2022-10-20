@@ -84,6 +84,8 @@ typedef struct SDL_Android_AudioTrack_Spec {
         WRITE_NON_BLOCKING = 1,
     } write_mode; // not used
 
+    int audio_session_id;
+
     // extra field
     int sdl_samples;
 } SDL_Android_AudioTrack_Spec;

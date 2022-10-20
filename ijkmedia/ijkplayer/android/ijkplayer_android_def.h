@@ -147,6 +147,7 @@ enum media_info_type {
     MEDIA_INFO_FRAME_DROPPED = 10200,
     MEDIA_INFO_FRAME_NOT_DROPPED = 10300,
     MEDIA_INFO_VIDEO_RECORD_COMPLETE = 10400,
+    MEDIA_INFO_VIDEO_RECORD_START = 10401,
 };
 
 typedef struct ijkmp_mediacodecinfo_context

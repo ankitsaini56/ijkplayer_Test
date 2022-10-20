@@ -63,6 +63,7 @@ public interface IMediaPlayer {
     int MEDIA_INFO_FRAME_DROPPED = 10200;
     int MEDIA_INFO_FRAME_NOT_DROPPED = 10300;
     int MEDIA_INFO_VIDEO_RECORD_COMPLETE = 10400;
+    int MEDIA_INFO_VIDEO_RECORD_START = 10401;
 
     int MEDIA_ERROR_UNKNOWN = 1;
     int MEDIA_ERROR_SERVER_DIED = 100;
@@ -108,6 +109,8 @@ public interface IMediaPlayer {
     void seekTo(long msec) throws IllegalStateException;
 
     long getCurrentPosition();
+
+    long getRecordingPosition();
 
     long getRealTime();
 

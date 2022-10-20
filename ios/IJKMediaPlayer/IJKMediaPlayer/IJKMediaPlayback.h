@@ -29,6 +29,7 @@
 #define IJK_NOEVENT_VALUE -1
 #define IJK_NOCHANNEL_VALUE -1
 #define INVALID_WEBRTC_ID 0
+#define FACE_EMBEDDING_LEN 128
 
 #define MKTAG(a,b,c,d) ((a) | ((b) << 8) | ((c) << 16) | ((unsigned)(d) << 24))
 #define ERRTAG(a, b, c, d) (-(int)MKTAG(a, b, c, d))
@@ -86,6 +87,8 @@ typedef void (*OnFling)(float translationX, float translationY, float velocityX,
 typedef struct {
     CGRect rect;
     NSString *category;
+    float vector[FACE_EMBEDDING_LEN];
+    int vectorSize;
 } ObjectTrackingInfo;
 
 typedef struct {
@@ -104,6 +107,20 @@ typedef struct {
                 withWidth:(int)w
                 andHeight:(int)h
                 andObjTrackList:(ObjectTrackingInfoList)objTrackList;
+
+@end
+
+@interface AudioFrame : NSObject
+
+@property(nonatomic, readonly) NSData *data;
+@property(nonatomic, readonly) int sampleRate;
+@property(nonatomic, readonly) int channels;
+@property(nonatomic, readonly) int bitsPerSample;
+
+- (instancetype)initFrame:(NSData *)data
+            withSampleRate:(int)sampleRate
+              withChannels:(int)channels
+         andBitsPerSample:(int)bitsPerSample;
 
 @end
 
@@ -161,6 +178,7 @@ withMainView:(UIImageView *)mainView
 
 @property(nonatomic, readonly)  UIView *view;
 @property(nonatomic)            NSTimeInterval currentPlaybackTime;
+@property(nonatomic, readonly)  NSTimeInterval currentRecordingTime;
 @property(nonatomic, readonly)  NSTimeInterval realTime;
 @property(nonatomic, readonly)  NSInteger avtechPlaybackStatus;
 @property(nonatomic, readonly)  NSTimeInterval duration;
@@ -188,6 +206,7 @@ withMainView:(UIImageView *)mainView
 @property (nonatomic) float playbackVolume;
 
 @property (nonatomic, readonly) Frame *RGBAFrame;
+@property (nonatomic, readonly) AudioFrame *AudioFrame;
 @property (nonatomic) int currentX;
 @property (nonatomic) int currentY;
 @property (nonatomic) ObjectTrackingInfoList objTrackList;
@@ -263,6 +282,7 @@ IJK_EXTERN NSString *const IJKMPMoviePlayerSeekVideoStartNotification;
 IJK_EXTERN NSString *const IJKMPMoviePlayerPlayFrameDroppedNotification;
 IJK_EXTERN NSString *const IJKMPMoviePlayerPlayFrameNotDroppedNotification;
 IJK_EXTERN NSString *const IJKMPMoviePlayerVideoRecordCompleteNotification;
+IJK_EXTERN NSString *const IJKMPMoviePlayerVideoRecordStartNotification;
 
 IJK_EXTERN NSString *const IJKStreamTypeAudioAndVideo;
 IJK_EXTERN NSString *const IJKStreamTypeAudioAndSubVideo;

@@ -348,6 +348,20 @@ LABEL_RETURN:
 }
 
 static jlong
+IjkMediaPlayer_getRecordingPosition(JNIEnv *env, jobject thiz)
+{
+    jlong retval = 0;
+    IjkMediaPlayer *mp = jni_get_media_player(env, thiz);
+    JNI_CHECK_GOTO(mp, env, NULL, "mpjni: getRecordingPosition: null mp", LABEL_RETURN);
+
+    retval = ijkmp_get_recording_position(mp);
+
+LABEL_RETURN:
+    ijkmp_dec_ref_p(&mp);
+    return retval;
+}
+
+static jlong
 IjkMediaPlayer_getRealTime(JNIEnv *env, jobject thiz)
 {
     jlong retval = 0;
@@ -982,6 +996,9 @@ static void message_loop_n(JNIEnv *env, IjkMediaPlayer *mp)
         case FFP_MSG_VIDEO_RECORD_COMPLETE:
             post_event(env, weak_thiz, MEDIA_INFO, MEDIA_INFO_VIDEO_RECORD_COMPLETE, msg.arg1);
             break;
+        case FFP_MSG_VIDEO_RECORD_START:
+            post_event(env, weak_thiz, MEDIA_INFO, MEDIA_INFO_VIDEO_RECORD_START, 0);
+            break;
 
         default:
             ALOGE("unknown FFP_MSG_xxx(%d)\n", msg.what);
@@ -1139,7 +1156,50 @@ LABEL_RETURN:
     return jframe;
 }
 
+static jbyteArray
+IjkMediaPlayer_getAudioFrame(JNIEnv *env, jobject thiz, jintArray jsample_rate, jintArray jchannels, jintArray jbits_per_sample)
+{
+    jbyteArray jframe = NULL;
+    jlong retval = 0;
+    jstring jmeta_str;
+    IjkMediaPlayer *mp = jni_get_media_player(env, thiz);
+    JNI_CHECK_GOTO(mp, env, NULL, "mpjni: getAudio: null mp", LABEL_RETURN);
 
+    uint8_t *frame;
+    int size;
+    int sample_rate;
+    int channels;
+    int bits_per_sample;
+
+    retval = ijkmp_get_audio(mp, &frame, &size, &sample_rate, &channels, &bits_per_sample);
+
+    if (retval != 0) {
+        ijkmp_dec_ref_p(&mp);
+        return NULL;
+    }
+
+    jint *jint_sample_rate = (jint*) (*env)->GetIntArrayElements( env, jsample_rate, NULL );
+    jint *jint_channels = (jint*) (*env)->GetIntArrayElements( env, jchannels, NULL );
+    jint *jint_bit_per_sample = (jint*) (*env)->GetIntArrayElements( env, jbits_per_sample, NULL );
+
+    jint_sample_rate[0] = sample_rate;
+    jint_channels[0] = channels;
+    jint_bit_per_sample[0] = bits_per_sample;
+
+    jframe = (*env)->NewByteArray( env, size );
+    jbyte *cframe = (*env)->GetByteArrayElements( env, jframe, NULL );
+    memcpy(cframe, frame, size);
+    free(frame);
+
+    (*env)->ReleaseByteArrayElements( env, jframe, cframe, 0 );
+    (*env)->ReleaseIntArrayElements( env, jsample_rate, jint_sample_rate, 0 );
+    (*env)->ReleaseIntArrayElements( env, jchannels, jint_channels, 0 );
+    (*env)->ReleaseIntArrayElements( env, jbits_per_sample, jint_bit_per_sample, 0 );
+
+LABEL_RETURN:
+    ijkmp_dec_ref_p(&mp);
+    return jframe;
+}
 
 // ----------------------------------------------------------------------------
 
@@ -1161,6 +1221,7 @@ static JNINativeMethod g_methods[] = {
     { "_pause",                 "()V",      (void *) IjkMediaPlayer_pause },
     { "isPlaying",              "()Z",      (void *) IjkMediaPlayer_isPlaying },
     { "getCurrentPosition",     "()J",      (void *) IjkMediaPlayer_getCurrentPosition },
+    { "getRecordingPosition",   "()J",      (void *) IjkMediaPlayer_getRecordingPosition },
     { "getRealTime",            "()J",      (void *) IjkMediaPlayer_getRealTime },
     { "getAvtechPlaybackStatus","()J",      (void *) IjkMediaPlayer_getAvtechPlaybackStatus },
     { "getDuration",            "()J",      (void *) IjkMediaPlayer_getDuration },
@@ -1194,6 +1255,7 @@ static JNINativeMethod g_methods[] = {
     { "native_setLogLevel",     "(I)V",                     (void *) IjkMediaPlayer_native_setLogLevel },
     { "_setFrameAtTime",        "(Ljava/lang/String;JJII)V", (void *) IjkMediaPlayer_setFrameAtTime },
     { "getRGBAFrame",           "([I[I[Ljava/lang/String;)[B", (void *) IjkMediaPlayer_getRGBAFrame },
+    { "getAudioFrame",           "([I[I[I)[B", (void *) IjkMediaPlayer_getAudioFrame },
 };
 
 JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved)

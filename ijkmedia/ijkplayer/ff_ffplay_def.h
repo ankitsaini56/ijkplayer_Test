@@ -127,7 +127,7 @@
 /* TODO: We assume that a decoded and resampled frame fits into this buffer */
 #define SAMPLE_ARRAY_SIZE (8 * 65536)
 
-#define MIN_PKT_DURATION 15
+#define MIN_PKT_DURATION 1
 
 #ifdef FFP_MERGE
 #define CURSOR_HIDE_DELAY 1000000
@@ -186,6 +186,7 @@ typedef struct PacketQueue {
 #define FRAME_QUEUE_SIZE FFMAX(SAMPLE_QUEUE_SIZE, FFMAX(VIDEO_PICTURE_QUEUE_SIZE_MAX, SUBPICTURE_QUEUE_SIZE))
 
 #define VIDEO_MAX_FPS_DEFAULT 30
+#define PCM_BUFFER_SIZE 20480
 
 typedef struct AudioParams {
     int freq;
@@ -442,7 +443,15 @@ typedef struct VideoState {
     uint32_t avtech_playback_status;
     MetaDataQueue metaq;
     MetaData *meta;
-} VideoState;
+    uint8_t pcm_data[PCM_BUFFER_SIZE];
+    int pcm_size;
+    SDL_mutex *pcm_mutex;
+    int audio_sample_rate;
+    int audio_channels;
+    int audio_bits_per_sample;
+    int64_t recording_start_pts;
+    int64_t recording_current_pts;
+ } VideoState;
 
 /* options specified by the user */
 #ifdef FFP_MERGE
@@ -755,6 +764,7 @@ typedef struct FFPlayer {
     int low_delay_stop_threshold;
     int high_speed_playback;
     int hack_claire_control;
+    int audio_session_id;
 } FFPlayer;
 
 #define fftime_to_milliseconds(ts) (av_rescale(ts, 1000, AV_TIME_BASE))

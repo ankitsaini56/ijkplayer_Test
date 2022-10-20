@@ -1030,6 +1030,7 @@ didCreateSessionDescription:(RTC_OBJC_TYPE(RTCSessionDescription) *)sdp
   config.tcpCandidatePolicy = RTCTcpCandidatePolicyDisabled;
   config.rtcpMuxPolicy = RTCRtcpMuxPolicyRequire;
   config.disableLinkLocalNetworks = YES;
+  config.keyType = RTCEncryptionKeyTypeRSA;
 
   RTC_OBJC_TYPE(RTCAudioSessionConfiguration) *webRTCConfig = [RTC_OBJC_TYPE(RTCAudioSessionConfiguration) webRTCConfiguration];
   webRTCConfig.category = AVAudioSessionCategoryPlayAndRecord;

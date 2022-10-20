@@ -21,6 +21,9 @@ import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.Intent;
+import android.media.AudioFormat;
+import android.media.AudioRecord;
+import android.media.MediaRecorder;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -68,22 +71,20 @@ public class VideoActivity extends AppCompatActivity
     private static final String WEBRTC_CREDENTIAL = "your_credential";
     private static final String WEBRTC_DMTOKEN = "your_dmtoken";
     private static final String WEBRTC_REALM = "your_realm";
-    private static final String WEBRTC_UDID_2 = "your_udid";
-    private static final String WEBRTC_CREDENTIAL_2 = "your_credential";
+    private static final Integer WEBRTC_CHANNEL = null;
+    private static final Integer WEBRTC_EVENT_START_TIME = null;
 
     private static final int AVAPI_CHANNEL = 0;
     private static final int MSG_DRAW_OBJECT_TRACKING = 1001;
     private static final int MSG_UPDATE_CACHE_INFO = 1002;
 
     private String mVideoPath;
-    private String mVideoPath2;
     private String mUdid;
     private String mCredential;
     private String mDmToken;
     private String mRealm;
     private AndroidMediaController mMediaController;
     private IjkVideoView mVideoView;
-    private IjkVideoView mVideoView2;
     private IjkTextureView mTextureVideo;
     private IjkTextureView mTextureSubVideo;
     private TextView mCacheInfo;
@@ -95,10 +96,11 @@ public class VideoActivity extends AppCompatActivity
     private boolean mDemoObjectTracking = false;
     private boolean mDemoToMp4 = false;
     private boolean mDemoPlayRawMp4 = false;
+    private boolean mDemoAEC = false;
     private int mSeesionId;
     private int mAvIndex;
     private long [] mClientCtx = new long[1];
-    private int mWebRTCClientCount = 1;
+    private AudioRecord mAudioRecorder = null;
 
     @SuppressLint("HandlerLeak")
     private Handler mHandler = new Handler() {
@@ -168,12 +170,6 @@ public class VideoActivity extends AppCompatActivity
 
         mVideoView = (IjkVideoView) findViewById(R.id.video_view);
         mVideoView.setMediaController(mMediaController);
-        mVideoView2 = (IjkVideoView) findViewById(R.id.video_view2);
-        mVideoView2.setMediaController(mMediaController);
-        if(!mDemoWebRTC || (mDemoWebRTC && mWebRTCClientCount == 1)) {
-            mVideoView2.setVisibility(View.INVISIBLE);
-            mVideoView.getLayoutParams().height = LinearLayout.LayoutParams.MATCH_PARENT;
-        }
         mTextureVideo = (IjkTextureView) findViewById(R.id.texture_video);
         mTextureSubVideo = (IjkTextureView) findViewById(R.id.texture_subvideo);
         mCacheInfo = (TextView) findViewById(R.id.cache_info);
@@ -183,9 +179,6 @@ public class VideoActivity extends AppCompatActivity
             return;
         }
 
-        if (mDemoObjectTracking) {
-            mDemoAVAPI4 = true;
-        }
         if (mDemoAvtechSeek) {
             mVideoView.enableAvtechSeek();
         }
@@ -255,7 +248,7 @@ public class VideoActivity extends AppCompatActivity
                 public void connect_state_handler(long client_ctx, int state) {
                 }
             }, 30000, null);
-            NebulaParameter param = new NebulaParameter(WEBRTC_DMTOKEN, WEBRTC_REALM, 1, IjkVideoView.STREAM_TYPE_AUDIO_AND_VIDEO, null, null, null);
+            NebulaParameter param = new NebulaParameter(WEBRTC_DMTOKEN, WEBRTC_REALM, WEBRTC_CHANNEL, IjkVideoView.STREAM_TYPE_AUDIO_AND_VIDEO, WEBRTC_EVENT_START_TIME, null, null);
             long id = mVideoView.startWebRTC(getApplicationContext(), getDisplayMetrics(), new NebulaImp(ctx[0]), param);
             if(id != IjkVideoView.INVALID_WEBRTC_ID) {
                 mVideoPath = "webrtc://tutk.com?pc_id=" + id;
@@ -263,23 +256,6 @@ public class VideoActivity extends AppCompatActivity
                 Log.e(TAG, "StartWebRTC failed");
             }
             mVideoView.setWebRTCMic(true);
-
-            if(mWebRTCClientCount == 2) {
-                long [] ctx2 = new long[1];
-                NebulaAPIs.Nebula_Client_New_From_String(WEBRTC_UDID_2, WEBRTC_CREDENTIAL_2, ctx2);
-                NebulaAPIs.Nebula_Client_Connect(ctx2[0], new NebulaAPIs.NebulaClientConnectStateFn() {
-                    @Override
-                    public void connect_state_handler(long client_ctx, int state) {
-                    }
-                }, 30000, null);
-                param = new NebulaParameter(WEBRTC_DMTOKEN, WEBRTC_REALM);
-                id = mVideoView2.startWebRTC(getApplicationContext(), getDisplayMetrics(), new NebulaImp(ctx2[0]), param);
-                if (id != IjkVideoView.INVALID_WEBRTC_ID) {
-                    mVideoPath2 = "webrtc://tutk.com?pc_id=" + id;
-                } else {
-                    Log.e(TAG, "StartWebRTC failed");
-                }
-            }
         }
 
         if (mDemoObjectTracking) {
@@ -289,21 +265,25 @@ public class VideoActivity extends AppCompatActivity
         }
         if (!mDemoObjectTracking) {
             mVideoView.enableMediaCodec();
-            mVideoView2.enableMediaCodec();
         }
         if (mDemoPlayRawMp4) {
             mVideoPath = "android.resource://tv.danmaku.ijk.media.example/" + R.raw.h265;
         }
 
+        if (mDemoAEC && !mDemoWebRTC) {
+            int minBufSize = AudioRecord.getMinBufferSize(8000, AudioFormat.CHANNEL_IN_MONO,AudioFormat.ENCODING_PCM_8BIT);
+            mAudioRecorder = new AudioRecord(MediaRecorder.AudioSource.VOICE_COMMUNICATION,
+                    8000,
+                    AudioFormat.CHANNEL_IN_MONO,
+                    AudioFormat.ENCODING_PCM_8BIT,
+                    minBufSize);
+            int audioSessionId = mAudioRecorder.getAudioSessionId();
+            mVideoView.setAudioSessionId(audioSessionId);
+        }
+
         mVideoView.setVideoPath(mVideoPath);
         mVideoView.start();
         mVideoView.setSpeed(1.0f);
-
-        if(mDemoWebRTC && mWebRTCClientCount == 2) {
-            mVideoView2.setVideoPath(mVideoPath2);
-            mVideoView2.start();
-            mVideoView2.setSpeed(1.0f);
-        }
 
         mVideoView.setOnPreparedListener(new IMediaPlayer.OnPreparedListener() {
             @Override
@@ -349,6 +329,9 @@ public class VideoActivity extends AppCompatActivity
                             Log.i(TAG, "video record fail");
                         }
                         break;
+                    case IMediaPlayer.MEDIA_INFO_VIDEO_RECORD_START:
+                        Log.i(TAG, "video record start");
+                        break;
                 }
                 return false;
             }
@@ -385,10 +368,6 @@ public class VideoActivity extends AppCompatActivity
         }
         mVideoView.stopPlayback();
         mVideoView.release(true);
-        if(mDemoWebRTC && mWebRTCClientCount == 2) {
-            mVideoView2.stopPlayback();
-            mVideoView2.release(true);
-        }
         if (mDemoAVAPI3) {
             AVAPIs.avClientExit(mAvIndex, mSeesionId);
             AVAPIs.avClientStop(mAvIndex);
@@ -401,9 +380,6 @@ public class VideoActivity extends AppCompatActivity
         }
         if(mDemoWebRTC) {
             mVideoView.stopWebRTC();
-            if(mWebRTCClientCount == 2) {
-                mVideoView2.stopWebRTC();
-            }
         }
         super.onDestroy();
     }

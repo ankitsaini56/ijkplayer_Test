@@ -7,10 +7,12 @@ import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Vector;
 
 public class ObjectTrackingInfo {
     public Rect rect;
     public String category;
+    public Vector<Double> vector;
 
     public static List<ObjectTrackingInfo> parse(String jsonStr) {
         ArrayList info = new ArrayList();
@@ -80,19 +82,29 @@ public class ObjectTrackingInfo {
             }
             category = json.optString("cat");
             JSONArray jsonRect = json.getJSONArray("rect");
-            if (jsonRect.length() >= 4) {
-                rect = new Rect();
-                rect.x = jsonRect.getInt(0);
-                rect.y = jsonRect.getInt(1);
-                rect.width = jsonRect.getInt(2) - rect.x;
-                rect.height = jsonRect.getInt(3) - rect.y;
-                return true;
+            if (jsonRect.length() < 4) {
+                return false;
+            }
+            rect = new Rect();
+            rect.x = jsonRect.getInt(0);
+            rect.y = jsonRect.getInt(1);
+            rect.width = jsonRect.getInt(2) - rect.x;
+            rect.height = jsonRect.getInt(3) - rect.y;
+
+            JSONArray jsonVector = json.optJSONArray("vector");
+            if (jsonVector != null) {
+                vector = new Vector<>();
+                for (int i = 0; i < jsonVector.length(); i++) {
+                    double v = jsonVector.getDouble(i);
+                    vector.add(v);
+                }
             }
         } catch (JSONException e) {
             e.printStackTrace();
+            return false;
         }
 
-        return false;
+        return true;
     }
 
     private boolean parseROI(JSONObject jsonRoot) {

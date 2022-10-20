@@ -335,10 +335,6 @@ static void VTDecoderCallback(void *decompressionOutputRefCon,
             ctx->new_seg_flag = false;
         }
 
-        if (ctx->m_sort_queue && newFrame->pic.pts < ctx->m_sort_queue->pic.pts) {
-            goto failed;
-        }
-
         // FIXME: duplicated code
         {
             double dpts = NAN;

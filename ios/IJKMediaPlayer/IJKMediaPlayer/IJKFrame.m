@@ -24,3 +24,19 @@
     return self;
 }
 @end
+
+@implementation AudioFrame
+
+- (instancetype)initFrame:(NSData *)data
+                withSampleRate:(int)sampleRate
+                withChannels:(int)channels
+          andBitsPerSample:(int)bitsPerSample;
+{
+    self = [super init];
+    _data = data;
+    _sampleRate = sampleRate;
+    _channels = channels;
+    _bitsPerSample = bitsPerSample;
+    return self;
+}
+@end

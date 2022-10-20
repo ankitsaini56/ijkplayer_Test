@@ -219,7 +219,8 @@ SDL_Android_AudioTrack *SDL_Android_AudioTrack_new_from_spec(JNIEnv *env, SDL_An
         atrack->spec.channel_config,
         atrack->spec.audio_format,
         min_buffer_size,
-        atrack->spec.mode);
+        atrack->spec.mode,
+        atrack->spec.audio_session_id);
     if (!atrack->thiz) {
         free(atrack);
         return NULL;
@@ -251,6 +252,7 @@ SDL_Android_AudioTrack *SDL_Android_AudioTrack_new_from_sdl_spec(JNIEnv *env, co
     atrack_spec.channel_config = find_android_channel(sdl_spec->channels);
     atrack_spec.audio_format = find_android_format(sdl_spec->format);
     atrack_spec.buffer_size_in_bytes = sdl_spec->size;
+    atrack_spec.audio_session_id = sdl_spec->audio_session_id;
 
     if (sdl_spec->enable_aec) {
         atrack_spec.stream_type = STREAM_VOICE_CALL;
