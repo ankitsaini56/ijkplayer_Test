@@ -79,7 +79,8 @@ typedef NS_ENUM(NSInteger, IJKMPMovieTimeOption) {
 typedef NS_ENUM(NSInteger, Mode) {
     EPAN,
     PIP,
-    OBJECT_DETECT
+    OBJECT_DETECT,
+    NORMAL
 };
 
 typedef void (*OnFling)(float translationX, float translationY, float velocityX, float velocityY);

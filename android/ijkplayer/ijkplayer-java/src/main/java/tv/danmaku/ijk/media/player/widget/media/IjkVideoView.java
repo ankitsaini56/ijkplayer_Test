@@ -104,10 +104,11 @@ public class IjkVideoView extends FrameLayout implements
         EPAN,
         PIP,
         OBJECT_DETECT,
+        NORMAL,
     }
 
     private static String TAG = "IjkVideoView";
-    private static String VERSION = "0.9.29";
+    private static String VERSION = "0.9.32";
 
     // settable by the client
     private Uri mUri = null;
@@ -191,6 +192,7 @@ public class IjkVideoView extends FrameLayout implements
     private int mAvapiTimeout = 0;
     private boolean mDebug = true;
     private int mAudioSessionId = AudioManager.AUDIO_SESSION_ID_GENERATE;
+    private long mSocketTimeoutUS = 0;
 
     private Context mAppContext;
     private IRenderView mRenderView;
@@ -1188,6 +1190,10 @@ public class IjkVideoView extends FrameLayout implements
             ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "max-buffer-size", mMaxBufferSize);
         }
 
+        if (mSocketTimeoutUS > 0) {
+            ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_FORMAT, "stimeout", mSocketTimeoutUS);
+        }
+
         ijkMediaPlayer.setOption(IjkMediaPlayer.OPT_CATEGORY_PLAYER, "audio-session-id", mAudioSessionId);
 
         return ijkMediaPlayer;
@@ -1391,6 +1397,10 @@ public class IjkVideoView extends FrameLayout implements
 
     public void setAudioSessionId(int audioSessionId) {
         mAudioSessionId = audioSessionId;
+    }
+
+    public void setSocketTimeout(long timeoutMS) {
+        mSocketTimeoutUS = timeoutMS * 1000;
     }
 
     public float getVolume() {
@@ -1712,6 +1722,9 @@ public class IjkVideoView extends FrameLayout implements
             subView.setVisibility(VISIBLE);
         } else if (mode == Mode.OBJECT_DETECT) {
             drawRect(full, frame.trackingInfo, mode);
+            mainView.drawFromBitmap(full);
+            subView.setVisibility(GONE);
+        } else if (mode == Mode.NORMAL) {
             mainView.drawFromBitmap(full);
             subView.setVisibility(GONE);
         }
