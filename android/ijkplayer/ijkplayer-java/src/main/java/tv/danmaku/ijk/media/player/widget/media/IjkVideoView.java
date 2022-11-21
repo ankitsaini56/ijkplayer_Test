@@ -108,7 +108,7 @@ public class IjkVideoView extends FrameLayout implements
     }
 
     private static String TAG = "IjkVideoView";
-    private static String VERSION = "0.9.32";
+    private static String VERSION = "0.9.35";
 
     // settable by the client
     private Uri mUri = null;

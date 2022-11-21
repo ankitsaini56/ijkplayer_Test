@@ -1034,10 +1034,21 @@ didCreateSessionDescription:(RTC_OBJC_TYPE(RTCSessionDescription) *)sdp
 
   RTC_OBJC_TYPE(RTCAudioSessionConfiguration) *webRTCConfig = [RTC_OBJC_TYPE(RTCAudioSessionConfiguration) webRTCConfiguration];
   webRTCConfig.category = AVAudioSessionCategoryPlayAndRecord;
-  webRTCConfig.categoryOptions = AVAudioSessionCategoryOptionDuckOthers |
-    AVAudioSessionCategoryOptionAllowBluetooth |
-    AVAudioSessionCategoryOptionDefaultToSpeaker;
-  webRTCConfig.mode = AVAudioSessionModeDefault;
+  if (@available(iOS 16.0, *)) {
+    //
+    // <HACK> iOS 16 need to set MixWithOthers & ModeVideoChat to remove audio recording noise
+    //
+    webRTCConfig.categoryOptions = AVAudioSessionCategoryOptionDuckOthers |
+      AVAudioSessionCategoryOptionAllowBluetooth |
+      AVAudioSessionCategoryOptionDefaultToSpeaker |
+      AVAudioSessionCategoryOptionMixWithOthers;
+    webRTCConfig.mode = AVAudioSessionModeVideoChat;
+  } else {
+    webRTCConfig.categoryOptions = AVAudioSessionCategoryOptionDuckOthers |
+      AVAudioSessionCategoryOptionAllowBluetooth |
+      AVAudioSessionCategoryOptionDefaultToSpeaker;
+    webRTCConfig.mode = AVAudioSessionModeDefault;
+  }
   [RTC_OBJC_TYPE(RTCAudioSessionConfiguration) setWebRTCConfiguration:webRTCConfig];
       
   _peerConnection = [_factory peerConnectionWithConfiguration:config

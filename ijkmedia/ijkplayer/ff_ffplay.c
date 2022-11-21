@@ -133,6 +133,7 @@ static AVPacket flush_pkt;
 #define STOP_RECORDING_TIMEOUT_MSEC 3000
 #define BITRATE_MIN_INTERVAL_MSEC 1000
 #define BITRATE_MAX_INTERVAL_MSEC 10000
+#define META_INTERVAL_MSEC 500
 
 int meta_queue_init(MetaDataQueue *queue, int size)
 {
@@ -190,18 +191,25 @@ void meta_queue_put(MetaDataQueue *queue, MetaData *data)
     SDL_UnlockMutex(queue->mutex);
 }
 
-MetaData *get_meta_by_pts(MetaDataQueue *queue, int64_t pts)
+MetaData *get_meta_by_pts(MetaDataQueue *queue, int64_t pts, AVRational time_base)
 {
     MetaData *data = NULL;
     while ((data = meta_queue_get(queue)) != NULL) {
         if (data->pts == pts) {
             break;
         } else if (data->pts < pts) {
+            int64_t diff_ms = av_rescale_q(pts - data->pts, time_base, av_d2q(0.001, INT_MAX));
+            if (queue->last == 0 && diff_ms <= META_INTERVAL_MSEC) {
+                break;
+            }
             data = meta_queue_pop(queue);
             free(data->meta);
             free(data);
         } else {
-            data = NULL;
+            int64_t diff_ms = av_rescale_q(data->pts - pts, time_base, av_d2q(0.001, INT_MAX));
+            if (diff_ms > META_INTERVAL_MSEC) {
+                data = NULL;
+            }
             break;
         }
     }
@@ -1094,7 +1102,7 @@ static int put_to_frame_buffer(FFPlayer *ffp, Frame* frame)
     }
 
     SDL_LockMutex(is->frame_mutex);
-    is->meta = get_meta_by_pts(&is->metaq, (int64_t)(frame->pts / av_q2d(is->video_st->time_base)));
+    is->meta = get_meta_by_pts(&is->metaq, (int64_t)(frame->pts / av_q2d(is->video_st->time_base)), is->video_st->time_base);
 
     if (!is->rgba_data || video_changed) {
         if (is->rgba_data) {

@@ -38,8 +38,8 @@
 #import "Nebula_interface.h"
 #include "string.h"
 
-static const char *kIJKFFRequiredFFmpegVersion = "0.5.1";
-static const char *kIJKVideoViewVersion = "0.9.32";
+static const char *kIJKFFRequiredFFmpegVersion = "0.5.2";
+static const char *kIJKVideoViewVersion = "0.9.35";
 static const int MIN_DISTANCE = 5;
 static const float TRACKING_SPEED = 0.05f;
 static const int TRACKING_THRESHOLD_IN_SECONDS = 3;
