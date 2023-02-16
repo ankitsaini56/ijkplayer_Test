@@ -2409,5 +2409,14 @@ andOnComplete:(void(^)(int))onComplete
     }
 }
 
+- (NSDictionary *)getPlaybackBarEvents:(int)startTime {
+    return [_client getPlaybackBarEvents:startTime];
+}
+
+- (NSDictionary *)getPlaybackAllEvents:(int)startTime {
+    return [_client getPlaybackAllEvents:startTime];
+}
+
+
 @end
 

@@ -93,6 +93,9 @@ typedef enum IJKLogLevel {
 - (void)addExtraOptions:(IJKFFOptions *)options
                 withUrl:(NSString *)aUrlString;
 
+- (NSDictionary *)getPlaybackBarEvents:(int)startTime;
+- (NSDictionary *)getPlaybackAllEvents:(int)startTime;
+
 - (void)prepareToPlay;
 - (void)play;
 - (void)pause;

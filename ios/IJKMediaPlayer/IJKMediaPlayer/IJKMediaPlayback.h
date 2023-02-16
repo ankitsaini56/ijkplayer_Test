@@ -176,6 +176,8 @@ withMainView:(UIImageView *)mainView
   andIsQuickConnect:(bool)isQuickConnect;
 
 - (void)setVideoPath:(NSString *)path;
+- (NSDictionary *)getPlaybackBarEvents:(int)startTime;
+- (NSDictionary *)getPlaybackAllEvents:(int)startTime;
 
 @property(nonatomic, readonly)  UIView *view;
 @property(nonatomic)            NSTimeInterval currentPlaybackTime;

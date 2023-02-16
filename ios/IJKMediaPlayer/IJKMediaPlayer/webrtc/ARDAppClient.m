@@ -584,6 +584,72 @@ static int const kKbpsMultiplier = 1000;
   return 0;
 }
 
+- (NSString *) getPlaybackBarEventsQuery:(int)startTime {
+    NSString *json = nil;
+    NSMutableDictionary *dict = [[NSMutableDictionary alloc] init];
+  //    "queryEventList", queryEventListByNumber
+    [dict setValue:@"queryEventListByNumber" forKey:@"func"];
+
+    NSMutableDictionary *argsDict = [[NSMutableDictionary alloc] init];
+    [argsDict setValue:[NSNumber numberWithInt:startTime] forKey:@"startTime"];
+    [argsDict setValue:@"bar" forKey:@"order"];
+    [dict setValue:argsDict forKey:@"args"];
+
+    NSError *error;
+    NSData *data = [NSJSONSerialization dataWithJSONObject:dict options:kNilOptions error:&error];
+    json = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+    return json;
+}
+
+- (NSString *) getPlaybackAllEventsQuery:(int)startTime {
+    NSString *json = nil;
+    NSMutableDictionary *dict = [[NSMutableDictionary alloc] init];
+  //    "queryEventList", queryEventListByNumber
+    [dict setValue:@"queryEventListByNumber" forKey:@"func"];
+
+    NSMutableDictionary *argsDict = [[NSMutableDictionary alloc] init];
+    [argsDict setValue:[NSNumber numberWithInt:startTime] forKey:@"startTime"];
+    [argsDict setValue:@"all" forKey:@"order"];
+    [dict setValue:argsDict forKey:@"args"];
+
+    NSError *error;
+    NSData *data = [NSJSONSerialization dataWithJSONObject:dict options:kNilOptions error:&error];
+    json = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+    return json;
+}
+
+- (NSDictionary *)getPlaybackAllEvents:(int)startTime {
+    NSString *getQueryEventListCommand = [self getPlaybackAllEventsQuery:startTime];
+    char *playbackResp = [self sendCommand:getQueryEventListCommand];
+    if(playbackResp == nil) {
+        NSLog(@"sendCommand get playback all events failed");
+        return 0;
+    }
+    NSDictionary *playbackDict = [NSDictionary dictionaryWithJSONString:@(playbackResp)];
+    NSDictionary *playbackContent = playbackDict[@"content"];
+    if(playbackContent == nil) {
+        NSLog(@"no content of get playback all events response");
+        return 0;
+    }
+    return playbackContent;
+}
+
+- (NSDictionary *)getPlaybackBarEvents:(int)startTime {
+    NSString *getQueryEventListCommand = [self getPlaybackBarEventsQuery:startTime];
+    char *playbackResp = [self sendCommand:getQueryEventListCommand];
+    if(playbackResp == nil) {
+        NSLog(@"sendCommand get playback bar events failed");
+        return 0;
+    }
+    NSDictionary *playbackDict = [NSDictionary dictionaryWithJSONString:@(playbackResp)];
+    NSDictionary *playbackContent = playbackDict[@"content"];
+    if(playbackContent == nil) {
+        NSLog(@"no content of get playback bar events response");
+        return 0;
+    }
+    return playbackContent;
+}
+
 - (long)connectToRoomWithId:(NSString *)roomId
                    settings:(ARDSettingsModel *)settings
                  isLoopback:(BOOL)isLoopback {
