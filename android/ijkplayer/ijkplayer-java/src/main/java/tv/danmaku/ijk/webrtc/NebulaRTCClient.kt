@@ -1,5 +1,6 @@
 package tv.danmaku.ijk.media.example.webrtc
 
+import android.content.Context
 import android.util.Log
 import org.json.JSONArray
 import org.json.JSONObject
@@ -10,6 +11,9 @@ import org.webrtc.SessionDescription
 import tv.danmaku.ijk.webrtc.AppRTCClient
 import tv.danmaku.ijk.webrtc.AppRTCClient.*
 import tv.danmaku.ijk.webrtc.NebulaInterface
+import java.io.File
+import java.io.FileReader
+import java.io.FileWriter
 import java.lang.Thread.sleep
 import java.util.*
 import java.util.concurrent.ExecutorService
@@ -17,9 +21,7 @@ import java.util.concurrent.Executors
 
 class NebulaRTCClient : AppRTCClient {
     companion object {
-        private var gStartWebRTCResponse = ""
-        private var gLastResponseTimestamp = 0L
-        private var gTtl = 0
+        private val WEBRTC_CACHE = "WebRTCcache"
     }
 
     private val TAG = "NebulaRTCClient"
@@ -43,9 +45,11 @@ class NebulaRTCClient : AppRTCClient {
     private var mIceGatheringState: PeerConnection.IceGatheringState = PeerConnection.IceGatheringState.NEW;
     private var mChannelsResponse: JSONArray? = null
     private val DEBUG = true
+    private var mContext: Context? = null
 
 
-    constructor(events: SignalingEvents, nebulaAPIs: NebulaInterface) {
+    constructor(ctx: Context, events: SignalingEvents, nebulaAPIs: NebulaInterface) {
+        mContext = ctx
         mEvents = events
         mNebulaAPIs = nebulaAPIs
     }
@@ -205,6 +209,12 @@ class NebulaRTCClient : AppRTCClient {
         val channel = JSONObject()
         channel.putOpt("channelId", mConnectionParameters?.nebulaParameters?.channelId)
         channel.putOpt("streamType", mConnectionParameters?.nebulaParameters?.streamType)
+        mConnectionParameters?.nebulaParameters?.playbackFileName?.let {
+            channel.putOpt("fileName", it)
+        }
+        mConnectionParameters?.nebulaParameters?.playbackStartTime?.let {
+            channel.putOpt("startTime", it)
+        }
         channel.put("autoPlay", true)
         channels.put(channel)
 
@@ -329,31 +339,32 @@ class NebulaRTCClient : AppRTCClient {
 
     private fun startClient(): Int {
         var response:String? = null
-
-        if(mConnectionParameters?.nebulaParameters?.playbackStartTime != null ||
+        var useTurnInfoCache = false
+        //new
+        if(mConnectionParameters?.nebulaParameters?.isQuickConnect != true) {
+            if(mConnectionParameters?.nebulaParameters?.playbackStartTime != null ||
                 mConnectionParameters?.nebulaParameters?.playbackFileName != null) {
-            Log.e(TAG, "playback")
-            //send startPlayback
-            clientSend(genStartPlaybackJson().toString())?.let {
-                val startPlaybackResp = JSONObject(it)
-                Log.d(TAG, "${startPlaybackResp.toString()}")
-                val statusCode = startPlaybackResp.getInt("statusCode")
-                if (statusCode != 200) {
-                    Log.e(TAG, "failed to startPlayback: code=$statusCode, msg=${startPlaybackResp.getString("statusMsg")}")
+                Log.e(TAG, "playback")
+                //send startPlayback
+                clientSend(genStartPlaybackJson().toString())?.let {
+                    val startPlaybackResp = JSONObject(it)
+                    Log.d(TAG, "${startPlaybackResp.toString()}")
+                    val statusCode = startPlaybackResp.getInt("statusCode")
+                    if (statusCode != 200) {
+                        Log.e(TAG, "failed to startPlayback: code=$statusCode, msg=${startPlaybackResp.getString("statusMsg")}")
+                        return -1
+                    } else {
+                        val jContent = startPlaybackResp.getJSONObject("content")
+                        mChannelsResponse = JSONArray()
+                        mChannelsResponse?.put(jContent)
+                        Log.d(TAG, "channel response=${mChannelsResponse.toString()}")
+                    }
+                } ?: run {
+                    Log.e(TAG, "failed to startPlayback")
                     return -1
-                } else {
-                    val jContent = startPlaybackResp.getJSONObject("content")
-                    mChannelsResponse = JSONArray()
-                    mChannelsResponse?.put(jContent)
-                    Log.d(TAG, "channel response=${mChannelsResponse.toString()}")
                 }
-            } ?: run {
-                Log.e(TAG, "failed to startPlayback")
-                return -1
-            }
-        }else {
-            //send startLiveStreamEx
-            if(mConnectionParameters?.nebulaParameters?.isQuickConnect != true) {
+            }else {
+                //send startLiveStreamEx
                 clientSend(genStartLiveStreamExJson().toString())?.let {
                     val startLiveStreamExResp = JSONObject(it)
                     Log.d(TAG, "${startLiveStreamExResp.toString()}")
@@ -370,11 +381,6 @@ class NebulaRTCClient : AppRTCClient {
                     return -1
                 }
             }
-        }
-
-        var useTurnInfoCache = false
-        //send startWebRtc
-        if(mConnectionParameters?.nebulaParameters?.isQuickConnect != true) {
             if (mConnectionParameters?.nebulaParameters?.dmToken != null) {
                 response = clientSend(genStartWebRtcJson().toString()) ?: return -1
                 Log.d(TAG, "start webrtc response=$response")
@@ -396,13 +402,16 @@ class NebulaRTCClient : AppRTCClient {
             }
         }else {
             if (mConnectionParameters?.nebulaParameters?.dmToken != null) {
-                val ttl = gTtl / 2
-                if (System.currentTimeMillis() - gLastResponseTimestamp < ttl * 1000) {
-                    useTurnInfoCache = true
-                    var json = JSONObject(gStartWebRTCResponse)
-                    val content = json.optJSONObject("content")
-                    buildIceServer(content)
-                    createOffer(null)
+                val cache = loadCache()
+                if (cache != null) {
+                    val json = JSONObject(cache)
+                    val expireTime = json.optLong("expireTime")
+                    if (System.currentTimeMillis() <= expireTime) {
+                        useTurnInfoCache = true
+                        val content = json.optJSONObject("content")
+                        buildIceServer(content)
+                        createOffer(null)
+                    }
                 }
 
                 response = clientSend(genStartWebRtcExJson().toString()) ?: return -1
@@ -421,11 +430,10 @@ class NebulaRTCClient : AppRTCClient {
                         buildIceServer(content)
                     }
                     mChannelsResponse = content.optJSONArray("channels")
-                    if (System.currentTimeMillis() - gLastResponseTimestamp >= ttl * 1000) {
-                        gStartWebRTCResponse = response
-                        gTtl = content.optInt("ttl")
-                        gLastResponseTimestamp = System.currentTimeMillis()
-                    }
+                    val ttl = content.optInt("ttl")
+                    val expiredTime = System.currentTimeMillis() + ttl * 1000
+                    startResJson.put("expireTime", expiredTime)
+                    saveCache(startResJson.toString())
                 }
             }
         }
@@ -433,7 +441,29 @@ class NebulaRTCClient : AppRTCClient {
         if (!useTurnInfoCache) {
             createOffer(null)
         }
+        
         return 0
+    }
+
+    fun saveCache(data: String) {
+        val context = mContext ?: return
+        val f = File(context.filesDir, WEBRTC_CACHE)
+        val fileWriter = FileWriter(f)
+        fileWriter.write(data)
+        fileWriter.flush()
+        fileWriter.close()
+    }
+
+    fun loadCache() : String? {
+        val context = mContext ?: return null
+        val f = File(context.filesDir, WEBRTC_CACHE)
+        if (!f.exists()) {
+            return null
+        }
+        val fileReader = FileReader(f)
+        val data = fileReader.readText()
+        fileReader.close()
+        return data
     }
 
     override fun sendOfferSdp(sdp: SessionDescription?) {

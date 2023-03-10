@@ -34,7 +34,6 @@ import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.tutk.IOTC.AVAPIs;
@@ -175,7 +174,13 @@ public class VideoActivity extends AppCompatActivity
         mCacheInfo = (TextView) findViewById(R.id.cache_info);
 
         if (mDemoToMp4) {
-            mVideoView.toMp4(mVideoPath, VIDEO_RECORD_PATH, result -> Log.i(TAG, "mp4 generated"));
+            mVideoView.toMp4(mVideoPath, VIDEO_RECORD_PATH, result -> {
+                if (result == 0) {
+                    Log.i(TAG, "mp4 download success");
+                } else {
+                    Log.i(TAG, "mp4 download fail");
+                }
+            });
             return;
         }
 
@@ -248,12 +253,16 @@ public class VideoActivity extends AppCompatActivity
                 public void connect_state_handler(long client_ctx, int state) {
                 }
             }, 30000, null);
-            NebulaParameter param = new NebulaParameter(WEBRTC_DMTOKEN, WEBRTC_REALM, WEBRTC_CHANNEL, IjkVideoView.STREAM_TYPE_AUDIO_AND_VIDEO, WEBRTC_EVENT_START_TIME, null, null);
+            NebulaParameter param = new NebulaParameter(WEBRTC_DMTOKEN, WEBRTC_REALM, WEBRTC_CHANNEL, IjkVideoView.STREAM_TYPE_AUDIO_AND_VIDEO, WEBRTC_EVENT_START_TIME, null, true);
             long id = mVideoView.startWebRTC(getApplicationContext(), getDisplayMetrics(), new NebulaImp(ctx[0]), param);
             if(id != IjkVideoView.INVALID_WEBRTC_ID) {
-                mVideoPath = "webrtc://tutk.com?pc_id=" + id;
+                int eventDurationMS = 10000;
+                final String WEBRTC_LIVE_URL = "webrtc://tutk.com?pc_id=" + id;
+                final String WEBRTC_PLAYBACK_URL = "webrtc://tutk.com?pc_id=" + id + "&duration-ms=" + eventDurationMS;
+                mVideoPath = WEBRTC_LIVE_URL;
             }else {
                 Log.e(TAG, "StartWebRTC failed");
+                return;
             }
             mVideoView.setWebRTCMic(true);
         }
@@ -367,7 +376,6 @@ public class VideoActivity extends AppCompatActivity
             mHandler.removeMessages(MSG_DRAW_OBJECT_TRACKING);
         }
         mVideoView.stopPlayback();
-        mVideoView.release(true);
         if (mDemoAVAPI3) {
             AVAPIs.avClientExit(mAvIndex, mSeesionId);
             AVAPIs.avClientStop(mAvIndex);
@@ -377,9 +385,6 @@ public class VideoActivity extends AppCompatActivity
             NebulaAPIs.Nebula_Client_Delete(mClientCtx[0]);
             AVAPIs.avClientStop(mAvIndex);
             IOTCAPIs.IOTC_Session_Close(mSeesionId);
-        }
-        if(mDemoWebRTC) {
-            mVideoView.stopWebRTC();
         }
         super.onDestroy();
     }

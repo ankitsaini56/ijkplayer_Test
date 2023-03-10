@@ -50,6 +50,8 @@
 #define MAX_PROBE_SIZE 512
 #define NALU_START_CODE_SIZE 3
 
+#define ALOGE_IF(cond, ...) do { if(cond) ALOGE(__VA_ARGS__); } while(0)
+
 typedef struct sample_info {
 
     double  sort;
@@ -251,7 +253,6 @@ static void QueuePicture(Ijk_VideoToolBox_Opaque* ctx) {
     }
 }
 
-
 static void VTDecoderCallback(void *decompressionOutputRefCon,
                        void *sourceFrameRefCon,
                        OSStatus status,
@@ -295,7 +296,7 @@ static void VTDecoderCallback(void *decompressionOutputRefCon,
             goto failed;
 
         if (status != 0) {
-            ALOGE("decode callback %d %s\n", (int)status, vtb_get_error_string(status));
+            ALOGE_IF(ffp->debug, "decode callback %d %s\n", (int)status, vtb_get_error_string(status));
             goto failed;
         }
 

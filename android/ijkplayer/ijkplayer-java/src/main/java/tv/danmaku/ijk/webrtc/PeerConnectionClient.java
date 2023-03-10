@@ -13,6 +13,7 @@ package tv.danmaku.ijk.webrtc;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.media.AudioAttributes;
+import android.media.AudioManager;
 import android.os.Build;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
@@ -124,7 +125,7 @@ public class PeerConnectionClient {
   private final PCObserver pcObserver = new PCObserver();
   private final SDPObserver sdpObserver = new SDPObserver();
   private final Timer statsTimer = new Timer();
-  private final EglBase rootEglBase;
+  private EglBase rootEglBase;
   private final Context appContext;
   private final PeerConnectionParameters peerConnectionParameters;
   private final PeerConnectionEvents events;
@@ -180,6 +181,7 @@ public class PeerConnectionClient {
   // Implements the WebRtcAudioRecordSamplesReadyCallback interface and writes
   // recorded audio samples to an output file.
   //@Nullable private RecordedAudioToFileController saveRecordedAudioToFile;
+  private boolean isClosed = false;
 
   /**
    * Peer connection parameters.
@@ -398,6 +400,7 @@ public class PeerConnectionClient {
   }
 
   public void close() {
+    isClosed = true;
     executor.execute(this ::closeInternal);
   }
 
@@ -600,8 +603,10 @@ public class PeerConnectionClient {
     }
     // Create SDP constraints.
     sdpMediaConstraints = new MediaConstraints();
-    sdpMediaConstraints.mandatory.add(
-        new MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"));
+    if (peerConnectionParameters.audioCodec != null) {
+      sdpMediaConstraints.mandatory.add(
+              new MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"));
+    }
     sdpMediaConstraints.mandatory.add(new MediaConstraints.KeyValuePair(
         "OfferToReceiveVideo", Boolean.toString(isVideoCallEnabled())));
   }
@@ -658,7 +663,10 @@ public class PeerConnectionClient {
         remoteVideoTrack.addSink(remoteSink);
       }
     }
-    peerConnection.addTrack(createAudioTrack(), mediaStreamLabels);
+
+    if (peerConnectionParameters.audioCodec != null) {
+      peerConnection.addTrack(createAudioTrack(), mediaStreamLabels);
+    }
     if (isVideoCallEnabled()) {
       findVideoSender();
     }
@@ -761,7 +769,10 @@ public class PeerConnectionClient {
       factory.dispose();
       factory = null;
     }
-    rootEglBase.release();
+    if (rootEglBase != null) {
+      rootEglBase.release();
+      rootEglBase = null;
+    }
     Log.d(TAG, "Closing peer connection done.");
     events.onPeerConnectionClosed();
     if (peerConnectionParameters.tracing) {
@@ -810,6 +821,9 @@ public class PeerConnectionClient {
   public void setAudioEnabled(final boolean enable) {
     executor.execute(() -> {
       enableAudio = enable;
+      if (isClosed) {
+        return;
+      }
       if (localAudioTrack != null) {
         localAudioTrack.setEnabled(enableAudio);
       }
@@ -819,6 +833,9 @@ public class PeerConnectionClient {
   public void setVideoEnabled(final boolean enable) {
     executor.execute(() -> {
       renderVideo = enable;
+      if (isClosed) {
+        return;
+      }
       if (localVideoTrack != null) {
         localVideoTrack.setEnabled(renderVideo);
       }
@@ -954,7 +971,9 @@ public class PeerConnectionClient {
     Log.e(TAG, "Peerconnection error: " + errorMessage);
     executor.execute(() -> {
       if (!isError) {
-        events.onPeerConnectionError(errorMessage);
+        if (!isClosed) {
+          events.onPeerConnectionError(errorMessage);
+        }
         isError = true;
       }
     });
@@ -1225,12 +1244,20 @@ public class PeerConnectionClient {
   private class PCObserver implements PeerConnection.Observer {
     @Override
     public void onIceCandidate(final IceCandidate candidate) {
-      executor.execute(() -> events.onIceCandidate(candidate));
+      executor.execute(() -> {
+        if (!isClosed) {
+          events.onIceCandidate(candidate);
+        }
+      });
     }
 
     @Override
     public void onIceCandidatesRemoved(final IceCandidate[] candidates) {
-      executor.execute(() -> events.onIceCandidatesRemoved(candidates));
+      executor.execute(() -> {
+        if (!isClosed) {
+          events.onIceCandidatesRemoved(candidates);
+        }
+      });
     }
 
     @Override
@@ -1243,9 +1270,13 @@ public class PeerConnectionClient {
       executor.execute(() -> {
         Log.d(TAG, "IceConnectionState: " + newState);
         if (newState == IceConnectionState.CONNECTED) {
-          events.onIceConnected();
+          if (!isClosed) {
+            events.onIceConnected();
+          }
         } else if (newState == IceConnectionState.DISCONNECTED) {
-          events.onIceDisconnected();
+          if (!isClosed) {
+            events.onIceDisconnected();
+          }
         } else if (newState == IceConnectionState.FAILED) {
           reportError("ICE connection failed.");
         }
@@ -1257,10 +1288,14 @@ public class PeerConnectionClient {
       executor.execute(() -> {
         Log.d(TAG, "PeerConnectionState: " + newState);
         if (newState == PeerConnectionState.CONNECTED) {
-          events.onConnected();
+          if (!isClosed) {
+            events.onConnected();
+          }
         } else if (newState == PeerConnectionState.DISCONNECTED ||
                 newState == PeerConnectionState.CLOSED) {
-          events.onDisconnected();
+          if (!isClosed) {
+            events.onDisconnected();
+          }
         } else if (newState == PeerConnectionState.FAILED) {
           reportError("DTLS connection failed.");
         }
@@ -1270,7 +1305,11 @@ public class PeerConnectionClient {
     @Override
     public void onIceGatheringChange(PeerConnection.IceGatheringState newState) {
       Log.d(TAG, "IceGatheringState: " + newState);
-      executor.execute(() -> events.onIceGatheringChange(newState));
+      executor.execute(() -> {
+        if (!isClosed) {
+          events.onIceGatheringChange(newState);
+        }
+      });
     }
 
     @Override
@@ -1371,7 +1410,9 @@ public class PeerConnectionClient {
           if (peerConnection.getRemoteDescription() == null) {
             // We've just set our local SDP so time to send it.
             Log.d(TAG, "Local SDP set succesfully");
-            events.onLocalDescription(localSdp);
+            if (!isClosed) {
+              events.onLocalDescription(localSdp);
+            }
           } else {
             // We've just set remote description, so drain remote
             // and send local ICE candidates.
@@ -1385,7 +1426,9 @@ public class PeerConnectionClient {
             // We've just set our local SDP so time to send it, drain
             // remote and send local ICE candidates.
             Log.d(TAG, "Local SDP set succesfully");
-            events.onLocalDescription(localSdp);
+            if (!isClosed) {
+              events.onLocalDescription(localSdp);
+            }
             drainCandidates();
           } else {
             // We've just set remote SDP - do nothing for now -

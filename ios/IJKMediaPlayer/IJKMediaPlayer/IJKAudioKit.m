@@ -52,28 +52,11 @@
     /* Set audio session to mediaplayback */
     NSError *error = nil;
     if (usePlaybackAndRecordMode) {
-        if (@available(iOS 16.0, *)) {
-            //
-            // <HACK> iOS 16 need to set MixWithOthers & ModeVideoChat to remove audio recording noise
-            //
-            if (NO == [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryPlayAndRecord  withOptions: AVAudioSessionCategoryOptionDuckOthers|
-                       AVAudioSessionCategoryOptionAllowBluetooth |
-                       AVAudioSessionCategoryOptionDefaultToSpeaker |
-                       AVAudioSessionCategoryOptionMixWithOthers error:&error]) {
-                NSLog(@"IJKAudioKit: AVAudioSession.setCategory() failed: %@\n", error ? [error localizedDescription] : @"nil");
-                return;
-            }
-            if (NO == [[AVAudioSession sharedInstance] setMode:AVAudioSessionModeVideoChat error:&error]) {
-                NSLog(@"IJKAudioKit: AVAudioSession.setMode() failed: %@\n", error ? [error localizedDescription] : @"nil");
-                return;
-            }
-        } else {
-            if (NO == [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryPlayAndRecord  withOptions: AVAudioSessionCategoryOptionDuckOthers|
-                       AVAudioSessionCategoryOptionAllowBluetooth |
-                       AVAudioSessionCategoryOptionDefaultToSpeaker error:&error]) {
-                NSLog(@"IJKAudioKit: AVAudioSession.setCategory() failed: %@\n", error ? [error localizedDescription] : @"nil");
-                return;
-            }
+        if (NO == [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryPlayAndRecord  withOptions: AVAudioSessionCategoryOptionDuckOthers|
+                   AVAudioSessionCategoryOptionAllowBluetooth |
+                   AVAudioSessionCategoryOptionDefaultToSpeaker error:&error]) {
+            NSLog(@"IJKAudioKit: AVAudioSession.setCategory() failed: %@\n", error ? [error localizedDescription] : @"nil");
+            return;
         }
     } else {
         if (NO == [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryPlayback error:&error]) {

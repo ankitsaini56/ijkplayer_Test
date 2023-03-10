@@ -60,9 +60,6 @@ NSString *const IJKMPMoviePlayerPlayFrameNotDroppedNotification = @"IJKMPMoviePl
 NSString *const IJKMPMoviePlayerVideoRecordCompleteNotification = @"IJKMPMoviePlayerVideoRecordCompleteNotification";
 NSString *const IJKMPMoviePlayerVideoRecordStartNotification = @"IJKMPMoviePlayerVideoRecordStartNotification";
 
-NSString *const IJKStreamTypeAudioAndVideo = @"audioAndVideo";
-NSString *const IJKStreamTypeAudioAndSubVideo = @"audioAndSubVideo";
-
 @implementation IJKMediaUrlOpenData {
     NSString *_url;
     BOOL _handled;

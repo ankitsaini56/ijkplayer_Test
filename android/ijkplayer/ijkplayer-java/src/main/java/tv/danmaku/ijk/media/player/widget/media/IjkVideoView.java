@@ -69,6 +69,9 @@ import org.webrtc.VideoFrame;
 import org.webrtc.VideoSink;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -108,7 +111,7 @@ public class IjkVideoView extends FrameLayout implements
     }
 
     private static String TAG = "IjkVideoView";
-    private static String VERSION = "0.9.35";
+    private static String VERSION = "0.9.46";
 
     // settable by the client
     private Uri mUri = null;
@@ -125,6 +128,8 @@ public class IjkVideoView extends FrameLayout implements
     public static final long INVALID_WEBRTC_ID = 0;
     public static final String STREAM_TYPE_AUDIO_AND_VIDEO = "audioAndVideo";
     public static final String STREAM_TYPE_AUDIO_AND_SUBVIDEO = "audioAndSubVideo";
+    public static final String STREAM_TYPE_VIDEO = "video";
+    public static final String STREAM_TYPE_SUBVIDEO = "subVideo";
     private static final int MIN_DISTANCE = 5;
     private static final float TRACKING_SPEED = 0.05f;
     private static final int TRACKING_THRESHOLD_IN_SECONDS = 3;
@@ -134,6 +139,7 @@ public class IjkVideoView extends FrameLayout implements
     private static final int MSG_CHECK = 1001;
     private static final int MSG_UPDATE_UI = 1002;
     private static final int MSG_START = 1003;
+    private static final int MSG_OPENVIDEO = 1004;
     private static final float MIN_SCALE = 1.f;
     private static final float MAX_SCALE = 3.f;
     private static final long IGNORE_THRESHOLD_IN_MS = 150;
@@ -176,7 +182,6 @@ public class IjkVideoView extends FrameLayout implements
     private long mWebRTCAPIs = 0;
     private Map<String, String> mHttpHeaders = null;
     private String mUserAgent = null;
-    private boolean mEnableOpenVideoOnSurfaceCreate = true;
     private int mCodecThreads = 0;
     private int mAccurateSeek = 1;
     private int mLowDelay = 0;
@@ -214,7 +219,7 @@ public class IjkVideoView extends FrameLayout implements
     private final ProxyVideoSink remoteProxyRenderer = new ProxyVideoSink();
     private AppRTCClient.RoomConnectionParameters roomConnectionParameters;
     private long callStartedTimeMs;
-    private long mWebrtcId = -1;
+    private long mWebrtcId = INVALID_WEBRTC_ID;
     private ConditionVariable cond;
     private ScaleGestureDetector mScaleDetector;
     private GestureDetector mDetector;
@@ -228,8 +233,11 @@ public class IjkVideoView extends FrameLayout implements
     private long mScaleOrDragEndTime = 0;
     private Listener mListener = null;
     private HandlerThread mHandlerThread = null;
-    private Handler mBackgoundHandler = null;
     private Object mWebRTClock = new Object();
+    private Object mPlayerLock = new Object();
+    private boolean mSurfaceCreated = false;
+    private int mSavedAudioMode = AudioManager.MODE_NORMAL;
+    private boolean mSavedIsSpeakerPhoneOn = false;
 
     private static int ERRTAG( byte a, char b, char c, char d) {
         int tag = (a & 0xFF) + ((b & 0xFF) << 8) + ((c & 0xFF) << 16) + ((d & 0xFF) << 24);
@@ -243,6 +251,15 @@ public class IjkVideoView extends FrameLayout implements
             if (msg.what == MSG_UPDATE_UI) {
                 requestLayout();
                 invalidate();
+                return;
+            }
+            if (msg.what == MSG_OPENVIDEO) {
+                if (mSurfaceCreated) {
+                    openVideo();
+                    mHandler.sendEmptyMessage(MSG_UPDATE_UI);
+                } else {
+                    mHandler.sendEmptyMessageDelayed(MSG_OPENVIDEO, 50);
+                }
                 return;
             }
 
@@ -349,7 +366,6 @@ public class IjkVideoView extends FrameLayout implements
         requestFocus();
         mCurrentState = STATE_IDLE;
         mTargetState = STATE_IDLE;
-        mEnableOpenVideoOnSurfaceCreate = true;
 
         subtitleDisplay = new TextView(context);
         subtitleDisplay.setTextSize(24);
@@ -444,31 +460,35 @@ public class IjkVideoView extends FrameLayout implements
      */
     private void setVideoURI(Uri uri) {
         mUri = uri;
-        mSeekWhenPrepared = 0;
-        openVideo();
-        mHandler.sendEmptyMessage(MSG_UPDATE_UI);
     }
 
     public void stopPlayback() {
         mHandler.removeCallbacksAndMessages(null);
-        if (mBackgoundHandler != null) {
-            mBackgoundHandler.removeCallbacksAndMessages(null);
-        }
         if (mHandlerThread != null) {
             mHandlerThread.quit();
             mHandlerThread.interrupt();
             mHandlerThread = null;
         }
 
-        if (mMediaPlayer != null) {
-            mCurrentState = STATE_IDLE;
-            mTargetState = STATE_IDLE;
-            mEnableOpenVideoOnSurfaceCreate = false;
-            AudioManager am = (AudioManager) mAppContext.getSystemService(Context.AUDIO_SERVICE);
-            am.abandonAudioFocus(null);
-            mMediaPlayer.stop();
-            mMediaPlayer.release();
-            mMediaPlayer = null;
+        IMediaPlayer player = null;
+        synchronized (mPlayerLock) {
+            if (mMediaPlayer != null) {
+                player = mMediaPlayer;
+                mMediaPlayer = null;
+            }
+        }
+        mCurrentState = STATE_IDLE;
+        mTargetState = STATE_IDLE;
+        AudioManager am = (AudioManager) mAppContext.getSystemService(Context.AUDIO_SERVICE);
+        am.abandonAudioFocus(null);
+        if (player != null) {
+            player.stop();
+            player.release();
+        }
+
+        if (mWebrtcId != INVALID_WEBRTC_ID) {
+            mWebrtcId = INVALID_WEBRTC_ID;
+            stopWebRTC();
         }
     }
 
@@ -478,9 +498,6 @@ public class IjkVideoView extends FrameLayout implements
             // not ready for playback just yet, will try again later
             return;
         }
-        // we shouldn't clear the target state, because somebody might have
-        // called start() previously
-        release(false);
 
         AudioManager am = (AudioManager) mAppContext.getSystemService(Context.AUDIO_SERVICE);
         am.requestAudioFocus(null, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN);
@@ -812,25 +829,21 @@ public class IjkVideoView extends FrameLayout implements
 
         @Override
         public void onSurfaceCreated(@NonNull IRenderView.ISurfaceHolder holder, int width, int height) {
+            mSurfaceCreated = true;
             if (holder.getRenderView() != mRenderView) {
                 Log.e(TAG, "onSurfaceCreated: unmatched render callback\n");
                 return;
             }
 
             mSurfaceHolder = holder;
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    if (mMediaPlayer != null)
-                        bindSurfaceHolder(mMediaPlayer, holder);
-                    else if (mEnableOpenVideoOnSurfaceCreate)
-                        openVideo();
-                }
-            }).start();
+            if (mMediaPlayer != null) {
+                bindSurfaceHolder(mMediaPlayer, holder);
+            }
         }
 
         @Override
         public void onSurfaceDestroyed(@NonNull IRenderView.ISurfaceHolder holder) {
+            mSurfaceCreated = false;
             if (holder.getRenderView() != mRenderView) {
                 Log.e(TAG, "onSurfaceDestroyed: unmatched render callback\n");
                 return;
@@ -839,36 +852,13 @@ public class IjkVideoView extends FrameLayout implements
             // after we return from this we can't use the surface any more
             mSurfaceHolder = null;
             if (mMediaPlayer != null) {
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        mMediaPlayer.setDisplay(null);
-                    }
-                }).start();
+                mMediaPlayer.setDisplay(null);
             }
         }
     };
 
-    /*
-     * release the media player in any state
-     */
+    @Deprecated
     public void release(boolean cleartargetstate) {
-        if (cleartargetstate) {
-            mUri = null;
-            mEnableOpenVideoOnSurfaceCreate = true;
-        }
-
-        if (mMediaPlayer != null) {
-            mMediaPlayer.reset();
-            mMediaPlayer.release();
-            mMediaPlayer = null;
-            mCurrentState = STATE_IDLE;
-            if (cleartargetstate) {
-                mTargetState = STATE_IDLE;
-            }
-            AudioManager am = (AudioManager) mAppContext.getSystemService(Context.AUDIO_SERVICE);
-            am.abandonAudioFocus(null);
-        }
     }
 
     @Override
@@ -950,6 +940,17 @@ public class IjkVideoView extends FrameLayout implements
 
     @Override
     public void start() {
+        if (mCurrentState == STATE_IDLE) {
+            mHandler.removeMessages(MSG_OPENVIDEO);
+            mSeekWhenPrepared = 0;
+            if (mSurfaceCreated) {
+                openVideo();
+                mHandler.sendEmptyMessage(MSG_UPDATE_UI);
+            } else {
+                mHandler.sendEmptyMessageDelayed(MSG_OPENVIDEO, 50);
+            }
+        }
+
         if (mEnableGetFrame != 0 && mUsingMediaCodec) {
             throw new RuntimeException("EnableGetFrame & UsingMediaCodec can't be enabled at the same time!!");
         }
@@ -959,17 +960,8 @@ public class IjkVideoView extends FrameLayout implements
             mHandlerThread.start();
         }
 
-        mBackgoundHandler = new Handler(mHandlerThread.getLooper()) {
-            @Override
-            public void handleMessage(Message msg) {
-                if (isInPlaybackState()) {
-                    mMediaPlayer.start();
-                }
-            }
-        };
-
         if (isInPlaybackState()) {
-            mBackgoundHandler.sendEmptyMessage(MSG_START);
+            mMediaPlayer.start();
             mCurrentState = STATE_PLAYING;
         }
         mTargetState = STATE_PLAYING;
@@ -1494,23 +1486,11 @@ public class IjkVideoView extends FrameLayout implements
     public Bitmap toBitmap(IjkFrame frame) {
         int w = frame.width;
         int h = frame.height;
-        Bitmap bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.RGB_565);
-
-        int[] pixels = new int[w * h];
-        int src = 0;
-        int dst = 0;
-        for (int y = 0; y < h; y++) {
-            for (int x = 0; x < w; x++) {
-                int r = frame.pixels[src++] & 0xff;
-                int g = frame.pixels[src++] & 0xff;
-                int b = frame.pixels[src++] & 0xff;
-                int a = frame.pixels[src++] & 0xff;
-                int color = (a << 24) | (r << 16) | (g << 8) | b;
-                pixels[dst++] = color;
-            }
-        }
-
-        bitmap.setPixels(pixels, 0, w, 0, 0, w, h);
+        Bitmap bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        IntBuffer buf = ByteBuffer.wrap(frame.pixels).order(ByteOrder.LITTLE_ENDIAN).asIntBuffer();
+        int [] pixels = new int[buf.remaining()];
+        buf.get(pixels);
+        bitmap.copyPixelsFromBuffer(IntBuffer.wrap(pixels));
         return bitmap;
     }
 
@@ -1709,8 +1689,6 @@ public class IjkVideoView extends FrameLayout implements
             rectCenter.y = full.getHeight() / 2;
         }
         Bitmap part = getSubImage(full, rectCenter);
-        mainView.setOpaque(false);
-        subView.setOpaque(false);
 
         if (mode == Mode.EPAN) {
             mainView.drawFromBitmap(part);
@@ -1836,17 +1814,28 @@ public class IjkVideoView extends FrameLayout implements
     }
 
     public long startWebRTC(Context context, DisplayMetrics displayMetrics, NebulaInterface nebukaAPIs, NebulaParameter param) {
+        AudioManager audioManager = (AudioManager) mAppContext.getSystemService(Context.AUDIO_SERVICE);
+        mSavedAudioMode = audioManager.getMode();
+        mSavedIsSpeakerPhoneOn = audioManager.isSpeakerphoneOn();
+        audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
+        audioManager.setSpeakerphoneOn(true);
+
         synchronized (mWebRTClock) {
             mWebrtcId = INVALID_WEBRTC_ID;
             cond = new ConditionVariable();
-            mRtcClient = new NebulaRTCClient(this, nebukaAPIs);
+            mRtcClient = new NebulaRTCClient(context, this, nebukaAPIs);
 
             long webRTCApis[] = new long[1];
             final EglBase eglBase = EglBase.create();
             DataChannelParameters dataChannelParameters = null;
+            String audioCodec = "OPUS";
+            if (param.getStreamType().equals(STREAM_TYPE_VIDEO) || param.getStreamType().equals(STREAM_TYPE_SUBVIDEO)) {
+                audioCodec = null;
+            }
+
             peerConnectionParameters = new PeerConnectionParameters(true, false, false,
                     displayMetrics.widthPixels, displayMetrics.heightPixels, 0, 0, "H264 High",
-                    true, false, 0, "OPUS", false,
+                    true, false, 0, audioCodec, false,
                     false, false, false, false, false,
                     false, false, false, dataChannelParameters);
             peerConnectionClient = new PeerConnectionClient(
@@ -1869,7 +1858,11 @@ public class IjkVideoView extends FrameLayout implements
         }
     }
 
-    public void stopWebRTC() {
+    private void stopWebRTC() {
+        AudioManager audioManager = (AudioManager) mAppContext.getSystemService(Context.AUDIO_SERVICE);
+        audioManager.setMode(mSavedAudioMode);
+        audioManager.setSpeakerphoneOn(mSavedIsSpeakerPhoneOn);
+
         synchronized (mWebRTClock) {
             disconnect();
         }

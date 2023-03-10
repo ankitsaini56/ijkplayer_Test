@@ -111,6 +111,8 @@ static const char *AVAPI3_PLAYBACK_URL="avapi://tutk.com/playback?session-id=%d&
 
 static const char *AVAPI4_LIVE_URL="avapi://tutk.com/live?av-index=%d";
 static const char *AVAPI4_PLAYBACK_URL="avapi://tutk.com/playback?session-id=%d&channel=%d&filename=%s&av-index=%d";
+static const char *WEBRTC_LIVE_URL="webrtc://tutk.com?pc_id=%ld";
+static const char *WEBRTC_PLAYBACK_URL="webrtc://tutk.com?pc_id=%ld&duration-ms=%d";
 
 void loginCallback(NebulaClientCtx *client, NebulaDeviceLoginState state)
 {
@@ -242,8 +244,11 @@ static NebulaClientCtx *clientCtx;
             NSLog(@"start webrtc failed!");
             return;
         }
-        NSString *url = [NSString stringWithFormat:@"webrtc://tutk.com?pc_id=%ld", webrtc_id];
-        [self.player setVideoPath:url];
+        char url[512];
+        int eventDurationMS = 10000;
+        sprintf(url, WEBRTC_PLAYBACK_URL, webrtc_id, eventDurationMS);
+        sprintf(url, WEBRTC_LIVE_URL, webrtc_id);
+        [self.player setVideoPath:@(url)];
         [self.player setWebRTCMic:YES];
     }else {
         self.player = [[IJKFFMoviePlayerController alloc] initWithContentURL:self.url withOptions:options];
@@ -253,8 +258,10 @@ static NebulaClientCtx *clientCtx;
         NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
         NSString *filePath = [[paths objectAtIndex:0] stringByAppendingPathComponent:@"out.mp4"];
         [self.player toMp4:filePath andOnComplete:^(int result){
-            if (result < 0) {
-                NSLog(@"download fail! result[%d]", result);
+            if (result == 0) {
+                NSLog(@"download success");
+            } else {
+                NSLog(@"download fail");
             }
         }];
         return;

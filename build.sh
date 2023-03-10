@@ -1,10 +1,5 @@
 #!/usr/bin/env sh
 
-if [ -z "$ANDROID_NDK" ]; then
-    echo "You must define ANDROID_NDK before starting."
-    exit 1
-fi
-
 if [ "$#" -eq "0" ]; then
     echo "Usage: build.sh [android / ios / all]";
     exit 0
@@ -13,6 +8,11 @@ fi
 PATH_BASE=`pwd`;
 
 if [[ "$1" =~ ^("-a"|"Android"|"android"|"all")$ ]]; then
+    if [ -z "$ANDROID_NDK" ]; then
+        echo "You must define ANDROID_NDK before starting."
+        exit 1
+    fi
+
     cd ${PATH_BASE}
     ./init-android.sh
     ./init-android-openssl.sh

@@ -180,6 +180,8 @@ static const AVOption ffp_context_options[] = {
         OPTION_OFFSET(hack_claire_control),     OPTION_INT(0, 0, 1) },
     { "audio-session-id",                    "audio recorder's audio session id for echo cancellation",
         OPTION_OFFSET(audio_session_id),     OPTION_INT(0, 0, INT_MAX) },
+    { "debug",                    "enable debug logs",
+        OPTION_OFFSET(debug),     OPTION_INT(0, 0, 1) },
 
     // set on runtime options
     { "video-record-path",                   "video record path",
