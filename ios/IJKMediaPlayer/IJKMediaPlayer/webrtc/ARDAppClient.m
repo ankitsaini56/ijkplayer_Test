@@ -650,6 +650,69 @@ static int const kKbpsMultiplier = 1000;
     return playbackContent;
 }
 
+- (NSString *) getStartSpeakerQuery {
+    NSString *json = nil;
+    NSMutableDictionary *dict = [[NSMutableDictionary alloc] init];
+    [dict setValue:@"startAudio" forKey:@"func"];
+
+    NSMutableDictionary *argsDict = [[NSMutableDictionary alloc] init];
+    [argsDict setValue:[NSNumber numberWithBool:true] forKey:@"value"];
+    [dict setValue:argsDict forKey:@"args"];
+
+    NSError *error;
+    NSData *data = [NSJSONSerialization dataWithJSONObject:dict options:kNilOptions error:&error];
+    json = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+    return json;
+}
+
+- (NSString *) getStopSpeakerQuery {
+    NSString *json = nil;
+    NSMutableDictionary *dict = [[NSMutableDictionary alloc] init];
+    [dict setValue:@"startAudio" forKey:@"func"];
+
+    NSMutableDictionary *argsDict = [[NSMutableDictionary alloc] init];
+    [argsDict setValue:[NSNumber numberWithBool:false] forKey:@"value"];
+    [dict setValue:argsDict forKey:@"args"];
+
+    NSError *error;
+    NSData *data = [NSJSONSerialization dataWithJSONObject:dict options:kNilOptions error:&error];
+    json = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+    return json;
+}
+
+- (NSDictionary *)startSpeaker {
+    NSString *getQueryEventListCommand = [self getStartSpeakerQuery];
+    char *startSpeakerRsp = [self sendCommand:getQueryEventListCommand];
+    if(startSpeakerRsp == nil) {
+        NSLog(@"sendCommand get playback bar events failed");
+        return 0;
+    }
+    NSDictionary *startSpeakerDict = [NSDictionary dictionaryWithJSONString:@(startSpeakerRsp)];
+    NSDictionary *startSpeakerContent = startSpeakerDict[@"content"];
+    if(startSpeakerContent == nil) {
+        NSLog(@"no content of get playback bar events response");
+        return 0;
+    }
+    return startSpeakerContent;
+}
+
+- (NSDictionary *)stopSpeaker {
+    NSString *getQueryEventListCommand = [self getStopSpeakerQuery];
+    char *stopSpeakerRsp = [self sendCommand:getQueryEventListCommand];
+    if(stopSpeakerRsp == nil) {
+        NSLog(@"sendCommand get playback bar events failed");
+        return 0;
+    }
+    NSDictionary *stopSpeakerDict = [NSDictionary dictionaryWithJSONString:@(stopSpeakerRsp)];
+    NSDictionary *stopSpeakerContent = stopSpeakerDict[@"content"];
+    if(stopSpeakerContent == nil) {
+        NSLog(@"no content of get playback bar events response");
+        return 0;
+    }
+    return stopSpeakerContent;
+}
+
+
 - (long)connectToRoomWithId:(NSString *)roomId
                    settings:(ARDSettingsModel *)settings
                  isLoopback:(BOOL)isLoopback {

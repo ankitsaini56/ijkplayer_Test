@@ -178,6 +178,8 @@ withMainView:(UIImageView *)mainView
 - (void)setVideoPath:(NSString *)path;
 - (NSDictionary *)getPlaybackBarEvents:(int)startTime;
 - (NSDictionary *)getPlaybackAllEvents:(int)startTime;
+- (NSDictionary *)startSpeaker;
+- (NSDictionary *)stopSpeaker;
 
 @property(nonatomic, readonly)  UIView *view;
 @property(nonatomic)            NSTimeInterval currentPlaybackTime;

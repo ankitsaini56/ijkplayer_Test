@@ -113,4 +113,6 @@ typedef NS_ENUM(NSInteger, ARDAppClientState) {
 - (void)setMicEnable:(BOOL)enable;
 - (NSDictionary *)getPlaybackBarEvents:(int)startTime;
 - (NSDictionary *)getPlaybackAllEvents:(int)startTime;
+- (NSDictionary *)startSpeaker;
+- (NSDictionary *)stopSpeaker;
 @end

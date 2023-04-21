@@ -95,6 +95,8 @@ typedef enum IJKLogLevel {
 
 - (NSDictionary *)getPlaybackBarEvents:(int)startTime;
 - (NSDictionary *)getPlaybackAllEvents:(int)startTime;
+- (NSDictionary *)startSpeaker;
+- (NSDictionary *)stopSpeaker;
 
 - (void)prepareToPlay;
 - (void)play;

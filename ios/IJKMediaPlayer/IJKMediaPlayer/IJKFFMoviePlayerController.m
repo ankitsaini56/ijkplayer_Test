@@ -2417,6 +2417,14 @@ andOnComplete:(void(^)(int))onComplete
     return [_client getPlaybackAllEvents:startTime];
 }
 
+- (NSDictionary *)startSpeaker {
+    return [_client startSpeaker];
+}
+
+- (NSDictionary *)stopSpeaker {
+    return [_client stopSpeaker];
+}
+
 
 @end
 
