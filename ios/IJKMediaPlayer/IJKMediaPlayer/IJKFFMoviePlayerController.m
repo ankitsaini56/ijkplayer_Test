@@ -38,8 +38,8 @@
 #import "Nebula_interface.h"
 #include "string.h"
 
-static const char *kIJKFFRequiredFFmpegVersion = "0.5.2";
-static const char *kIJKVideoViewVersion = "0.9.35";
+static const char *kIJKFFRequiredFFmpegVersion = "0.5.4";
+static const char *kIJKVideoViewVersion = "0.9.46";
 static const int MIN_DISTANCE = 5;
 static const float TRACKING_SPEED = 0.05f;
 static const int TRACKING_THRESHOLD_IN_SECONDS = 3;
@@ -374,15 +374,12 @@ void IJKFFIOStatCompleteRegister(void (*cb)(const char *url,
         
         ijkmp_ios_set_glview(_mediaPlayer, _glView);
         ijkmp_set_option(_mediaPlayer, IJKMP_OPT_CATEGORY_PLAYER, "overlay-format", "fcc-_es2");
-#ifdef DEBUG
-        [IJKFFMoviePlayerController setLogLevel:k_IJK_LOG_DEBUG];
-#else
-        [IJKFFMoviePlayerController setLogLevel:k_IJK_LOG_SILENT];
-#endif
 
         int debug = (int)[options getOptionIntValue:@"debug" ofCategory:kIJKFFOptionCategoryPlayer];
         if (debug > 0) {
             [IJKFFMoviePlayerController setLogLevel:k_IJK_LOG_DEBUG];
+        } else {
+            [IJKFFMoviePlayerController setLogLevel:k_IJK_LOG_SILENT];
         }
         
         // init audio sink
@@ -1896,10 +1893,9 @@ static int64_t calculateElapsed(int64_t begin, int64_t end)
     }
 }
 
-- (ObjectTrackingInfoList) parseMetaData:(const unsigned char *)meta
+- (NSArray *) parseMetaData:(const unsigned char *)meta
 {
-    ObjectTrackingInfoList list;
-    list.size = 0;
+    NSMutableArray *list = [[NSMutableArray alloc] init];
 
     NSData *nsMeta = [NSData dataWithBytes:meta length:strlen(meta)];
     NSDictionary *jsonDict = [NSJSONSerialization JSONObjectWithData:nsMeta options:NSJSONReadingMutableContainers error:nil];
@@ -1935,27 +1931,16 @@ static int64_t calculateElapsed(int64_t begin, int64_t end)
             }
 
             NSArray *jsonVector = jsonObj[@"vector"];
-            if (jsonVector) {
-                NSNumber *v = jsonVector[0];
-                NSLog(@"nith1 vector %f", [v floatValue]);
-                int vectorSize = MIN(jsonVector.count, FACE_EMBEDDING_LEN);
-                list.info[list.size].vectorSize = vectorSize;
-                for (int i = 0; i < vectorSize; i++) {
-                    NSNumber *v = jsonVector[i];
-                    list.info[list.size].vector[i] = [v floatValue];
-                }
-            }
 
-            if (jsonRect.count >= 4 && list.size < MAX_OBJECT_TRACK) {
+            if (jsonRect.count >= 4) {
                 CGRect r;
                 r.origin.x = [jsonRect[0] intValue];
                 r.origin.y = [jsonRect[1] intValue];
                 r.size.width = [jsonRect[2] intValue] - r.origin.x;
                 r.size.height = [jsonRect[3] intValue] - r.origin.y;
-                list.info[list.size].rect = r;
                 NSString *category = jsonObj[@"cat"];
-                list.info[list.size].category = category;
-                list.size++;
+                ObjectTrackingInfo *info = [[ObjectTrackingInfo alloc] initObjectTrackingInfo:r withCategory:category andVector:jsonVector];
+                [list addObject:info];
             }
         }
     } else {
@@ -1978,9 +1963,8 @@ static int64_t calculateElapsed(int64_t begin, int64_t end)
             r.origin.y = [jsonRect[1] intValue];
             r.size.width = [jsonRect[2] intValue] - r.origin.x;
             r.size.height = [jsonRect[3] intValue] - r.origin.y;
-            list.info[list.size].rect = r;
-            list.info[list.size].category = @"";
-            list.size++;
+            ObjectTrackingInfo *info = [[ObjectTrackingInfo alloc] initObjectTrackingInfo:r withCategory:@"" andVector:nil];
+            [list addObject:info];
         }
     }
     
@@ -2000,9 +1984,8 @@ static int64_t calculateElapsed(int64_t begin, int64_t end)
     if (data == nil) {
         return nil;
     }
-
-    ObjectTrackingInfoList objTrackList;
-    objTrackList.size = 0;
+    
+    NSArray *objTrackList = nil;
     if (meta != nil) {
         objTrackList = [self parseMetaData:meta];
     }
@@ -2222,7 +2205,7 @@ andOnComplete:(void(^)(int))onComplete
 }
 
 - (UIImage *) drawRect:(UIImage *)image
-         withObjTrackList:(ObjectTrackingInfoList)objTrackList
+         withObjTrackList:(NSArray *)objTrackList
                andMode:(Mode)mode
 {
     UIGraphicsBeginImageContextWithOptions(image.size, NO, 0.0);
@@ -2230,8 +2213,9 @@ andOnComplete:(void(^)(int))onComplete
 
     UIFont *font = [UIFont systemFontOfSize:30.f];
     CGContextRef context = UIGraphicsGetCurrentContext();
-    for (int i = 0; i < objTrackList.size; i++) {
-        CGRect rect = objTrackList.info[i].rect;
+    for (int i = 0; i < objTrackList.count; i++) {
+        ObjectTrackingInfo *info = objTrackList[i];
+        CGRect rect = info.rect;
         UIColor *strokeColor = [UIColor redColor];
         [strokeColor set];
         CGContextSetLineWidth(context, 10.0f);
@@ -2242,7 +2226,7 @@ andOnComplete:(void(^)(int))onComplete
             break;
         }
                 
-        NSString *category = objTrackList.info[i].category;
+        NSString *category = info.category;
         if (category != nil) {
             NSAttributedString *text = [[NSAttributedString alloc] initWithString : category
                                   attributes : @{
@@ -2267,7 +2251,7 @@ andOnComplete:(void(^)(int))onComplete
         return -1;
     }
     
-    if (frame.objTrackList.size > 0) {
+    if (frame.objTrackList.count > 0) {
         self.objTrackList = frame.objTrackList;
         self.lastFoundObjectTime = [[NSDate date] timeIntervalSince1970];
     }
@@ -2280,9 +2264,10 @@ andOnComplete:(void(^)(int))onComplete
         return 0;
     }
 
-    CGRect roi = self.objTrackList.info[0].rect;
+    ObjectTrackingInfo *info = self.objTrackList[0];
+    CGRect roi = info.rect;
     CGPoint center;
-    if (self.objTrackList.size > 0) {
+    if (self.objTrackList.count > 0) {
         center.x = roi.origin.x + roi.size.width / 2;
         center.y = roi.origin.y + roi.size.height / 2;
     } else {

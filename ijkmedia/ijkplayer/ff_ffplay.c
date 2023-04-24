@@ -5287,11 +5287,22 @@ long ffp_get_current_position_l(FFPlayer *ffp)
     if (!is || !is->ic)
         return 0;
 
-    int64_t start_time = is->video_st ? is->video_st->start_time : is->ic->start_time;
+    int64_t start_time = 0;
     int64_t start_diff = 0;
 
+    if (is->audio_st) {
+        start_time = is->audio_st->start_time;
+    } else if (is->video_st) {
+        start_time = is->video_st->start_time;
+    } else {
+        start_time = is->ic->start_time;
+    }
+
     if (start_time > 0 && start_time != AV_NOPTS_VALUE) {
-        if (is->video_st) {
+        if (is->audio_st) {
+            AVRational tb = is->audio_st->time_base;
+            start_diff = start_time * av_q2d(tb) * 1000;
+        } else if (is->video_st) {
             AVRational tb = is->video_st->time_base;
             start_diff = start_time * av_q2d(tb) * 1000;
         } else {

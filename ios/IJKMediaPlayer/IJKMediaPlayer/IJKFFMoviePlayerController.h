@@ -128,7 +128,7 @@ typedef enum IJKLogLevel {
 @property(nonatomic, assign) CGFloat maxScale;
 @property(nonatomic, assign) CGPoint lastPoint;
 @property(nonatomic, assign) CGSize frameSize;
-@property(nonatomic, assign) ObjectTrackingInfoList objTrackList;
+@property(nonatomic) NSArray *objTrackList;
 @property(nonatomic) long webrtcAPIs;
 @property(nonatomic) BOOL inShutdown;
 

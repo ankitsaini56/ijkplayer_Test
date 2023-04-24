@@ -765,6 +765,7 @@ typedef struct FFPlayer {
     int high_speed_playback;
     int hack_claire_control;
     int audio_session_id;
+    int debug;
 } FFPlayer;
 
 #define fftime_to_milliseconds(ts) (av_rescale(ts, 1000, AV_TIME_BASE))

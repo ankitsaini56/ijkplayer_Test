@@ -85,29 +85,30 @@ typedef NS_ENUM(NSInteger, Mode) {
 
 typedef void (*OnFling)(float translationX, float translationY, float velocityX, float velocityY);
 
-typedef struct {
-    CGRect rect;
-    NSString *category;
-    float vector[FACE_EMBEDDING_LEN];
-    int vectorSize;
-} ObjectTrackingInfo;
+@interface ObjectTrackingInfo : NSObject
 
-typedef struct {
-    int size;
-    ObjectTrackingInfo info[MAX_OBJECT_TRACK];
-} ObjectTrackingInfoList;
+@property(nonatomic, readonly) CGRect rect;
+@property(nonatomic, readonly) NSString *category;
+@property(nonatomic, readonly) NSArray *vector;
+
+- (instancetype)initObjectTrackingInfo:(CGRect)rect
+                         withCategory:(NSString *)category
+                            andVector:(NSArray *)vector;
+
+@end
+
 
 @interface Frame : NSObject
 
 @property(nonatomic, readonly) NSData *pixels;
 @property(nonatomic, readonly) int width;
 @property(nonatomic, readonly) int height;
-@property(nonatomic, readonly) ObjectTrackingInfoList objTrackList;
+@property(nonatomic, readonly) NSArray *objTrackList;
 
 - (instancetype)initFrame:(NSData *)pixels
                 withWidth:(int)w
                 andHeight:(int)h
-                andObjTrackList:(ObjectTrackingInfoList)objTrackList;
+                andObjTrackList:(NSArray *)objTrackList;
 
 @end
 
@@ -214,7 +215,7 @@ withMainView:(UIImageView *)mainView
 @property (nonatomic, readonly) AudioFrame *AudioFrame;
 @property (nonatomic) int currentX;
 @property (nonatomic) int currentY;
-@property (nonatomic) ObjectTrackingInfoList objTrackList;
+@property (nonatomic) NSArray *objTrackList;
 @property (nonatomic) NSTimeInterval lastFoundObjectTime;
 
 @property(nonatomic, assign) CGFloat maxScale;
@@ -291,6 +292,8 @@ IJK_EXTERN NSString *const IJKMPMoviePlayerVideoRecordStartNotification;
 
 IJK_EXTERN NSString *const IJKStreamTypeAudioAndVideo;
 IJK_EXTERN NSString *const IJKStreamTypeAudioAndSubVideo;
+IJK_EXTERN NSString *const IJKStreamTypeVideo;
+IJK_EXTERN NSString *const IJKStreamTypeSubVideo;
 
 @end
 

@@ -14,7 +14,7 @@
 - (instancetype)initFrame:(NSData *)pixels
                 withWidth:(int)w
                 andHeight:(int)h
-          andObjTrackList:(ObjectTrackingInfoList)objTrackList;
+          andObjTrackList:(NSArray *)objTrackList;
 {
     self = [super init];
     _pixels = pixels;
@@ -37,6 +37,20 @@
     _sampleRate = sampleRate;
     _channels = channels;
     _bitsPerSample = bitsPerSample;
+    return self;
+}
+@end
+
+@implementation ObjectTrackingInfo
+
+- (instancetype)initObjectTrackingInfo:(CGRect)rect
+                         withCategory:(NSString *)category
+                            andVector:(NSArray *)vector;
+{
+    self = [super init];
+    _rect = rect;
+    _category = category;
+    _vector = vector;
     return self;
 }
 @end

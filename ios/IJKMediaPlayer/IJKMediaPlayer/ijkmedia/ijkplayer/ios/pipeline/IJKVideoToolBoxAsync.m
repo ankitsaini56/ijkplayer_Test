@@ -46,6 +46,8 @@
 #define MAX_PKT_QUEUE_DEEP   350
 #define VTB_MAX_DECODING_SAMPLES 3
 
+#define ALOGE_IF(cond, ...) do { if(cond) ALOGE(__VA_ARGS__); } while(0)
+
 typedef struct sample_info {
     int     sample_id;
 
@@ -381,7 +383,7 @@ static void VTDecoderCallback(void *decompressionOutputRefCon,
             goto failed;
 
         if (status != 0) {
-            ALOGE("decode callback %d %s\n", (int)status, vtb_get_error_string(status));
+            ALOGE_IF(ffp->debug, "decode callback %d %s\n", (int)status, vtb_get_error_string(status));
             goto failed;
         }
 
