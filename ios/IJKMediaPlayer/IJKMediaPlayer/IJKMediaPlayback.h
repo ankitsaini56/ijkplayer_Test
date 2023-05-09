@@ -177,10 +177,11 @@ withMainView:(UIImageView *)mainView
   andIsQuickConnect:(bool)isQuickConnect;
 
 - (void)setVideoPath:(NSString *)path;
-- (NSDictionary *)getPlaybackBarEvents:(int)startTime;
-- (NSDictionary *)getPlaybackAllEvents:(int)startTime;
-- (NSDictionary *)startSpeaker;
-- (NSDictionary *)stopSpeaker;
+//- (NSDictionary *)getPlaybackBarEvents:(int)startTime;
+//- (NSDictionary *)getPlaybackAllEvents:(int)startTime;
+//- (NSDictionary *)startSpeaker;
+//- (NSDictionary *)stopSpeaker;
+- (char*)sendNebulaCommand:(NSString*)cmd;
 
 @property(nonatomic, readonly)  UIView *view;
 @property(nonatomic)            NSTimeInterval currentPlaybackTime;

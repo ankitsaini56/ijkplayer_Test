@@ -92,12 +92,7 @@ typedef enum IJKLogLevel {
 
 - (void)addExtraOptions:(IJKFFOptions *)options
                 withUrl:(NSString *)aUrlString;
-
-- (NSDictionary *)getPlaybackBarEvents:(int)startTime;
-- (NSDictionary *)getPlaybackAllEvents:(int)startTime;
-- (NSDictionary *)startSpeaker;
-- (NSDictionary *)stopSpeaker;
-
+- (char*)sendNebulaCommand:(NSString*)cmd;
 - (void)prepareToPlay;
 - (void)play;
 - (void)pause;

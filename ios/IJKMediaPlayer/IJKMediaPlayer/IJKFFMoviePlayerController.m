@@ -2394,22 +2394,25 @@ andOnComplete:(void(^)(int))onComplete
     }
 }
 
-- (NSDictionary *)getPlaybackBarEvents:(int)startTime {
-    return [_client getPlaybackBarEvents:startTime];
-}
+//- (NSDictionary *)getPlaybackBarEvents:(int)startTime {
+//    return [_client getPlaybackBarEvents:startTime];
+//}
+//
+//- (NSDictionary *)getPlaybackAllEvents:(int)startTime {
+//    return [_client getPlaybackAllEvents:startTime];
+//}
+//
+//- (NSDictionary *)startSpeaker {
+//    return [_client startSpeaker];
+//}
+//
+//- (NSDictionary *)stopSpeaker {
+//    return [_client stopSpeaker];
+//}
 
-- (NSDictionary *)getPlaybackAllEvents:(int)startTime {
-    return [_client getPlaybackAllEvents:startTime];
+- (char*)sendNebulaCommand:(NSString*)cmd {
+    return [_client sendCommand:cmd];
 }
-
-- (NSDictionary *)startSpeaker {
-    return [_client startSpeaker];
-}
-
-- (NSDictionary *)stopSpeaker {
-    return [_client stopSpeaker];
-}
-
 
 @end
 
