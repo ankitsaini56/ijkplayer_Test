@@ -812,6 +812,9 @@ inline static int getPlayerOption(IJKFFOptionCategory category)
 
 - (void)didShutdown
 {
+    [[NSNotificationCenter defaultCenter]
+     postNotificationName:IJKMPMediaShutDownNotification
+     object:self];
 }
 
 - (IJKMPMoviePlaybackState)playbackState
@@ -1849,6 +1852,13 @@ static int64_t calculateElapsed(int64_t begin, int64_t end)
 - (void)applicationDidBecomeActive
 {
     NSLog(@"IJKFFMoviePlayerController:applicationDidBecomeActive: %d", (int)[UIApplication sharedApplication].applicationState);
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (_pauseInBackground) {
+            NSLog(@"IJKFFMoviePlayerController:applicationDidBecomeActive: play started");
+//            [self play];
+//            [_glView ]
+        }
+    });
 }
 
 - (void)applicationWillResignActive
@@ -2413,6 +2423,7 @@ andOnComplete:(void(^)(int))onComplete
 - (char*)sendNebulaCommand:(NSString*)cmd {
     return [_client sendCommand:cmd];
 }
+
 
 @end
 

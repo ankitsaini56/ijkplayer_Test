@@ -164,7 +164,7 @@
 		C309784524D2D787005E8CA1 /* ARDBitrateTracker.h in Headers */ = {isa = PBXBuildFile; fileRef = C30977E024D2D786005E8CA1 /* ARDBitrateTracker.h */; };
 		C309784824D2D787005E8CA1 /* ARDSettingsStore.h in Headers */ = {isa = PBXBuildFile; fileRef = C30977E324D2D786005E8CA1 /* ARDSettingsStore.h */; };
 		C309784924D2D787005E8CA1 /* ARDAppEngineClient.m in Sources */ = {isa = PBXBuildFile; fileRef = C30977E424D2D786005E8CA1 /* ARDAppEngineClient.m */; };
-		C309784A24D2D787005E8CA1 /* ARDAppClient.h in Headers */ = {isa = PBXBuildFile; fileRef = C30977E524D2D786005E8CA1 /* ARDAppClient.h */; };
+		C309784A24D2D787005E8CA1 /* ARDAppClient.h in Headers */ = {isa = PBXBuildFile; fileRef = C30977E524D2D786005E8CA1 /* ARDAppClient.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		C309784B24D2D787005E8CA1 /* RTCIceServer+JSON.m in Sources */ = {isa = PBXBuildFile; fileRef = C30977E624D2D786005E8CA1 /* RTCIceServer+JSON.m */; };
 		C309784C24D2D787005E8CA1 /* ARDExternalSampleCapturer.h in Headers */ = {isa = PBXBuildFile; fileRef = C30977E724D2D786005E8CA1 /* ARDExternalSampleCapturer.h */; };
 		C309784D24D2D787005E8CA1 /* UIImage+ARDUtilities.m in Sources */ = {isa = PBXBuildFile; fileRef = C30977E924D2D786005E8CA1 /* UIImage+ARDUtilities.m */; };
@@ -228,6 +228,10 @@
 		C3FB2C9222F930EA00CEA522 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 5450AF8F1E63E59800568494 /* libz.tbd */; };
 		D47A8F4529F68D89008FCB22 /* WebRTC.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C30977CD24D2D5A7005E8CA1 /* WebRTC.framework */; };
 		D47A8F4629F68D89008FCB22 /* WebRTC.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = C30977CD24D2D5A7005E8CA1 /* WebRTC.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		D4D44BD82A2A340B00F1EA10 /* NebulaConnect.h in Headers */ = {isa = PBXBuildFile; fileRef = D4D44BD62A2A340B00F1EA10 /* NebulaConnect.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		D4D44BD92A2A340B00F1EA10 /* NebulaConnect.h in Headers */ = {isa = PBXBuildFile; fileRef = D4D44BD62A2A340B00F1EA10 /* NebulaConnect.h */; };
+		D4D44BDA2A2A340B00F1EA10 /* NebulaConnect.m in Sources */ = {isa = PBXBuildFile; fileRef = D4D44BD72A2A340B00F1EA10 /* NebulaConnect.m */; };
+		D4D44BDB2A2A340B00F1EA10 /* NebulaConnect.m in Sources */ = {isa = PBXBuildFile; fileRef = D4D44BD72A2A340B00F1EA10 /* NebulaConnect.m */; };
 		E607FFE11B7B62E3005F11A6 /* IJKDeviceModel.m in Sources */ = {isa = PBXBuildFile; fileRef = E607FFDF1B7B60F9005F11A6 /* IJKDeviceModel.m */; };
 		E653C6F61BCE5A750016835A /* libavcodec.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E653C6EF1BCE5A750016835A /* libavcodec.a */; };
 		E653C6F81BCE5A750016835A /* libavfilter.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E653C6F01BCE5A750016835A /* libavfilter.a */; };
@@ -467,6 +471,8 @@
 		C3F8AFE724752C2200504A90 /* AVAPI3_interface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AVAPI3_interface.h; path = IJKMediaPlayer/AVAPI3_interface.h; sourceTree = "<group>"; };
 		C3FB2C8E22F930B100CEA522 /* libcrypto.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcrypto.a; path = ../build/universal/lib/libcrypto.a; sourceTree = "<group>"; };
 		C3FB2C9022F930CF00CEA522 /* libssl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libssl.a; path = ../build/universal/lib/libssl.a; sourceTree = "<group>"; };
+		D4D44BD62A2A340B00F1EA10 /* NebulaConnect.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NebulaConnect.h; sourceTree = "<group>"; };
+		D4D44BD72A2A340B00F1EA10 /* NebulaConnect.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NebulaConnect.m; sourceTree = "<group>"; };
 		E607FFDE1B7B60F9005F11A6 /* IJKDeviceModel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = IJKDeviceModel.h; path = IJKMediaPlayer/IJKDeviceModel.h; sourceTree = "<group>"; };
 		E607FFDF1B7B60F9005F11A6 /* IJKDeviceModel.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = IJKDeviceModel.m; path = IJKMediaPlayer/IJKDeviceModel.m; sourceTree = "<group>"; };
 		E62139BC180FA89A00553533 /* IJKFFOptions.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = IJKFFOptions.h; sourceTree = "<group>"; };
@@ -953,6 +959,8 @@
 				C32A4E782318CBCE0098523A /* IJKFrame.m */,
 				E6903FCC17EAFC6100CFD954 /* ijkmedia */,
 				E6903EBF17EAF6C500CFD954 /* Supporting Files */,
+				D4D44BD62A2A340B00F1EA10 /* NebulaConnect.h */,
+				D4D44BD72A2A340B00F1EA10 /* NebulaConnect.m */,
 			);
 			name = IJKFFMoviePlayerController;
 			path = IJKMediaPlayer;
@@ -1252,6 +1260,7 @@
 				5450B02E1E63EA4300568494 /* ijkiomanager.h in Headers */,
 				5450B02F1E63EA4300568494 /* ijkstl.h in Headers */,
 				4D32BC821F906E3B00CE9F03 /* IJKSDLGLViewProtocol.h in Headers */,
+				D4D44BD92A2A340B00F1EA10 /* NebulaConnect.h in Headers */,
 				5450B0301E63EA4300568494 /* IJKMediaModule.h in Headers */,
 				5450B0311E63EA4300568494 /* ijkfifo.h in Headers */,
 				5450B0321E63EA4300568494 /* ijktree.h in Headers */,
@@ -1284,6 +1293,7 @@
 				C309786124D2D787005E8CA1 /* RTCVideoCodecInfo+HumanReadable.h in Headers */,
 				C309783A24D2D787005E8CA1 /* ARDMessageResponse+Internal.h in Headers */,
 				E654EAEA1B6B295200B0F2D0 /* IJKFFMoviePlayerController.h in Headers */,
+				D4D44BD82A2A340B00F1EA10 /* NebulaConnect.h in Headers */,
 				E68B7AC51C1E7F20001DE241 /* IJKSDLHudViewController.h in Headers */,
 				E654EAEC1B6B295200B0F2D0 /* IJKFFOptions.h in Headers */,
 				54CF8A541E15287D00309DD5 /* ijkutils.h in Headers */,
@@ -1534,6 +1544,7 @@
 				5450AFCE1E63EA4300568494 /* ffpipeline_ios.c in Sources */,
 				5450AFCF1E63EA4300568494 /* ijkioprotocol.c in Sources */,
 				5450AFD01E63EA4300568494 /* ijksdl_vout_dummy.c in Sources */,
+				D4D44BDB2A2A340B00F1EA10 /* NebulaConnect.m in Sources */,
 				5450AFD11E63EA4300568494 /* renderer_yuv420sp.c in Sources */,
 				5450AFD21E63EA4300568494 /* yuv420p.fsh.c in Sources */,
 				5450AFD31E63EA4300568494 /* ijksdl_error.c in Sources */,
@@ -1640,6 +1651,7 @@
 				E654EAAA1B6B284300B0F2D0 /* IJKMPMoviePlayerController.m in Sources */,
 				E68B7AD01C1E97B0001DE241 /* IJKSDLHudViewCell.m in Sources */,
 				E654EACB1B6B288A00B0F2D0 /* ijksdl_vout_overlay_videotoolbox.m in Sources */,
+				D4D44BDA2A2A340B00F1EA10 /* NebulaConnect.m in Sources */,
 				C309788A24D2D787005E8CA1 /* ARDStatsBuilder.m in Sources */,
 				E654EAB11B6B285900B0F2D0 /* ff_ffpipenode.c in Sources */,
 				E654EAC41B6B287E00B0F2D0 /* ijksdl_stdinc.c in Sources */,
@@ -1810,6 +1822,7 @@
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
 				GCC_WARN_UNDECLARED_SELECTOR = YES;

@@ -42,6 +42,7 @@ FOUNDATION_EXPORT const unsigned char IJKMediaFrameworkVersionString[];
 #import <IJKMediaFramework/IJKNotificationManager.h>
 #import <IJKMediaFramework/IJKKVOController.h>
 #import <IJKMediaFramework/IJKSDLGLViewProtocol.h>
+#import <IJKMediaFramework/NebulaConnect.h>
 #pragma clang diagnostic pop
 
 // backward compatible for old names

@@ -182,6 +182,7 @@ withMainView:(UIImageView *)mainView
 //- (NSDictionary *)startSpeaker;
 //- (NSDictionary *)stopSpeaker;
 - (char*)sendNebulaCommand:(NSString*)cmd;
+-(void)stopWebRTC;
 
 @property(nonatomic, readonly)  UIView *view;
 @property(nonatomic)            NSTimeInterval currentPlaybackTime;
@@ -295,6 +296,8 @@ IJK_EXTERN NSString *const IJKStreamTypeAudioAndVideo;
 IJK_EXTERN NSString *const IJKStreamTypeAudioAndSubVideo;
 IJK_EXTERN NSString *const IJKStreamTypeVideo;
 IJK_EXTERN NSString *const IJKStreamTypeSubVideo;
+
+IJK_EXTERN NSString *const IJKMPMediaShutDownNotification;
 
 @end
 
