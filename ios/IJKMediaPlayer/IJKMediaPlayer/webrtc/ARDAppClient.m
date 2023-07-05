@@ -586,7 +586,7 @@ static int const kKbpsMultiplier = 1000;
     return nil;
   }
 #if IS_DEBUG
-  NSLog(@"sendcmd response: %s", response);
+  NSLog(@"sendcmd response: %sm return code: %d", response, ret);
 #endif
   return response;
 }
