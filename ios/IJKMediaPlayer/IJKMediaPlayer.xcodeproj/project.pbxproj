@@ -221,8 +221,6 @@
 		C32A4E792318CBCE0098523A /* IJKFrame.m in Sources */ = {isa = PBXBuildFile; fileRef = C32A4E782318CBCE0098523A /* IJKFrame.m */; };
 		C32A4E7A2318CC050098523A /* IJKFrame.m in Sources */ = {isa = PBXBuildFile; fileRef = C32A4E782318CBCE0098523A /* IJKFrame.m */; };
 		C372653C24E3BAD90014BA30 /* Nebula_interface.h in Headers */ = {isa = PBXBuildFile; fileRef = C372653B24E3BAD80014BA30 /* Nebula_interface.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		C3F8AFE824752C2200504A90 /* AVAPI4_interface.h in Headers */ = {isa = PBXBuildFile; fileRef = C3F8AFE624752C2200504A90 /* AVAPI4_interface.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		C3F8AFE924752C2200504A90 /* AVAPI3_interface.h in Headers */ = {isa = PBXBuildFile; fileRef = C3F8AFE724752C2200504A90 /* AVAPI3_interface.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		C3FB2C8F22F930B100CEA522 /* libcrypto.a in Frameworks */ = {isa = PBXBuildFile; fileRef = C3FB2C8E22F930B100CEA522 /* libcrypto.a */; };
 		C3FB2C9122F930CF00CEA522 /* libssl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = C3FB2C9022F930CF00CEA522 /* libssl.a */; };
 		C3FB2C9222F930EA00CEA522 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 5450AF8F1E63E59800568494 /* libz.tbd */; };
@@ -240,7 +238,7 @@
 		E653C6FE1BCE5A750016835A /* libswresample.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E653C6F31BCE5A750016835A /* libswresample.a */; };
 		E653C7001BCE5A750016835A /* libswscale.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E653C6F41BCE5A750016835A /* libswscale.a */; };
 		E654EA8F1B6B27E600B0F2D0 /* IJKMediaFramework.h in Headers */ = {isa = PBXBuildFile; fileRef = E654EA8E1B6B27E600B0F2D0 /* IJKMediaFramework.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		E654EA951B6B27E600B0F2D0 /* IJKMediaFramework.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E654EA8A1B6B27E600B0F2D0 /* IJKMediaFramework.framework */; };
+		E654EA951B6B27E600B0F2D0 /* OneCamFramework.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E654EA8A1B6B27E600B0F2D0 /* OneCamFramework.framework */; };
 		E654EA9C1B6B27E600B0F2D0 /* IJKMediaFrameworkTests.m in Sources */ = {isa = PBXBuildFile; fileRef = E654EA9B1B6B27E600B0F2D0 /* IJKMediaFrameworkTests.m */; };
 		E654EAA31B6B283700B0F2D0 /* IJKAudioKit.m in Sources */ = {isa = PBXBuildFile; fileRef = E6EE92A2187810C5009EAB56 /* IJKAudioKit.m */; };
 		E654EAA41B6B283700B0F2D0 /* IJKMediaModule.m in Sources */ = {isa = PBXBuildFile; fileRef = E672D6F218D3445100C51FF9 /* IJKMediaModule.m */; };
@@ -467,8 +465,6 @@
 		C309783824D2D787005E8CA1 /* ARDBitrateTracker.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ARDBitrateTracker.m; sourceTree = "<group>"; };
 		C32A4E782318CBCE0098523A /* IJKFrame.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = IJKFrame.m; sourceTree = "<group>"; };
 		C372653B24E3BAD80014BA30 /* Nebula_interface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Nebula_interface.h; sourceTree = "<group>"; };
-		C3F8AFE624752C2200504A90 /* AVAPI4_interface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AVAPI4_interface.h; path = IJKMediaPlayer/AVAPI4_interface.h; sourceTree = "<group>"; };
-		C3F8AFE724752C2200504A90 /* AVAPI3_interface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AVAPI3_interface.h; path = IJKMediaPlayer/AVAPI3_interface.h; sourceTree = "<group>"; };
 		C3FB2C8E22F930B100CEA522 /* libcrypto.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcrypto.a; path = ../build/universal/lib/libcrypto.a; sourceTree = "<group>"; };
 		C3FB2C9022F930CF00CEA522 /* libssl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libssl.a; path = ../build/universal/lib/libssl.a; sourceTree = "<group>"; };
 		D4D44BD62A2A340B00F1EA10 /* NebulaConnect.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NebulaConnect.h; sourceTree = "<group>"; };
@@ -487,7 +483,7 @@
 		E653C6F21BCE5A750016835A /* libavutil.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libavutil.a; sourceTree = "<group>"; };
 		E653C6F31BCE5A750016835A /* libswresample.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libswresample.a; sourceTree = "<group>"; };
 		E653C6F41BCE5A750016835A /* libswscale.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libswscale.a; sourceTree = "<group>"; };
-		E654EA8A1B6B27E600B0F2D0 /* IJKMediaFramework.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = IJKMediaFramework.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		E654EA8A1B6B27E600B0F2D0 /* OneCamFramework.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = OneCamFramework.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		E654EA8D1B6B27E600B0F2D0 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		E654EA8E1B6B27E600B0F2D0 /* IJKMediaFramework.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = IJKMediaFramework.h; sourceTree = "<group>"; };
 		E654EA941B6B27E600B0F2D0 /* IJKMediaFrameworkTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = IJKMediaFrameworkTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -659,7 +655,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E654EA951B6B27E600B0F2D0 /* IJKMediaFramework.framework in Frameworks */,
+				E654EA951B6B27E600B0F2D0 /* OneCamFramework.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -908,8 +904,6 @@
 		E6903EB017EAF6C500CFD954 = {
 			isa = PBXGroup;
 			children = (
-				C3F8AFE724752C2200504A90 /* AVAPI3_interface.h */,
-				C3F8AFE624752C2200504A90 /* AVAPI4_interface.h */,
 				E66F8DBC17EEC2CF00354D80 /* Classes */,
 				E654EA8B1B6B27E600B0F2D0 /* IJKMediaFramework */,
 				E654EA981B6B27E600B0F2D0 /* IJKMediaFrameworkTests */,
@@ -922,7 +916,7 @@
 		E6903EBA17EAF6C500CFD954 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				E654EA8A1B6B27E600B0F2D0 /* IJKMediaFramework.framework */,
+				E654EA8A1B6B27E600B0F2D0 /* OneCamFramework.framework */,
 				E654EA941B6B27E600B0F2D0 /* IJKMediaFrameworkTests.xctest */,
 				5450B0431E63EA4300568494 /* IJKMediaFrameworkWithSSL.framework */,
 			);
@@ -1286,8 +1280,6 @@
 				C372653C24E3BAD90014BA30 /* Nebula_interface.h in Headers */,
 				C309788224D2D787005E8CA1 /* ARDJoinResponse+Internal.h in Headers */,
 				C309786324D2D787005E8CA1 /* ARDSettingsViewController.h in Headers */,
-				C3F8AFE824752C2200504A90 /* AVAPI4_interface.h in Headers */,
-				C3F8AFE924752C2200504A90 /* AVAPI3_interface.h in Headers */,
 				E6DBD3891C8941EB0058E4FB /* IJKFFMonitor.h in Headers */,
 				C309789424D2D787005E8CA1 /* ARDAppEngineClient.h in Headers */,
 				C309786124D2D787005E8CA1 /* RTCVideoCodecInfo+HumanReadable.h in Headers */,
@@ -1377,25 +1369,25 @@
 			productReference = 5450B0431E63EA4300568494 /* IJKMediaFrameworkWithSSL.framework */;
 			productType = "com.apple.product-type.framework";
 		};
-		E654EA891B6B27E600B0F2D0 /* IJKMediaFramework */ = {
+		E654EA891B6B27E600B0F2D0 /* OneCamFramework */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = E654EAA11B6B27E600B0F2D0 /* Build configuration list for PBXNativeTarget "IJKMediaFramework" */;
+			buildConfigurationList = E654EAA11B6B27E600B0F2D0 /* Build configuration list for PBXNativeTarget "OneCamFramework" */;
 			buildPhases = (
 				544E73271D93DEF4005CA5D9 /* ijkversion.h */,
 				E654EA851B6B27E600B0F2D0 /* Sources */,
 				E654EA861B6B27E600B0F2D0 /* Frameworks */,
 				E654EA871B6B27E600B0F2D0 /* Headers */,
 				E654EA881B6B27E600B0F2D0 /* Resources */,
-				C3E9EC202599D67D00A5B171 /* ShellScript */,
 				D47A8F4729F68D8A008FCB22 /* Embed Frameworks */,
+				C3E9EC202599D67D00A5B171 /* ShellScript */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
-			name = IJKMediaFramework;
+			name = OneCamFramework;
 			productName = IJKMediaFramework;
-			productReference = E654EA8A1B6B27E600B0F2D0 /* IJKMediaFramework.framework */;
+			productReference = E654EA8A1B6B27E600B0F2D0 /* OneCamFramework.framework */;
 			productType = "com.apple.product-type.framework";
 		};
 		E654EA931B6B27E600B0F2D0 /* IJKMediaFrameworkTests */ = {
@@ -1447,7 +1439,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				E654EA891B6B27E600B0F2D0 /* IJKMediaFramework */,
+				E654EA891B6B27E600B0F2D0 /* OneCamFramework */,
 				5450AFC11E63EA4300568494 /* IJKMediaFrameworkWithSSL */,
 				E654EA931B6B27E600B0F2D0 /* IJKMediaFrameworkTests */,
 			);
@@ -1505,7 +1497,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "sh \"${PROJECT_DIR}/../../ijkmedia/ijkplayer/version.sh\" \"${PROJECT_DIR}/../../ijkmedia/ijkplayer\" \"ijkversion.h\"";
+			shellScript = "sh \"${PROJECT_DIR}/../../ijkmedia/ijkplayer/version.sh\" \"${PROJECT_DIR}/../../ijkmedia/ijkplayer\" \"ijkversion.h\"\n";
 		};
 		C3E9EC202599D67D00A5B171 /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -1522,7 +1514,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "cd \"${CONFIGURATION_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/\"\n#if [[ -d \"Frameworks\" ]]; then\n#  mv Frameworks/* ..\n#  rm -fr Frameworks\n#fi\n";
+			shellScript = "cd \"${CONFIGURATION_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/\"\nif [[ -d \"Frameworks\" ]]; then\n  mv Frameworks/* ..\n  rm -fr Frameworks\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -1744,7 +1736,7 @@
 /* Begin PBXTargetDependency section */
 		E654EA971B6B27E600B0F2D0 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = E654EA891B6B27E600B0F2D0 /* IJKMediaFramework */;
+			target = E654EA891B6B27E600B0F2D0 /* OneCamFramework */;
 			targetProxy = E654EA961B6B27E600B0F2D0 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -2113,7 +2105,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		E654EAA11B6B27E600B0F2D0 /* Build configuration list for PBXNativeTarget "IJKMediaFramework" */ = {
+		E654EAA11B6B27E600B0F2D0 /* Build configuration list for PBXNativeTarget "OneCamFramework" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				E654EA9D1B6B27E600B0F2D0 /* Debug */,

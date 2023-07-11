@@ -32,17 +32,18 @@ FOUNDATION_EXPORT const unsigned char IJKMediaFrameworkVersionString[];
 // In this header, you should import all the public headers of your framework using statements like #import <IJKMediaFrameworkWithSSL/PublicHeader.h>
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Weverything"
-#import <IJKMediaFramework/IJKMediaPlayback.h>
-#import <IJKMediaFramework/IJKMPMoviePlayerController.h>
-#import <IJKMediaFramework/IJKFFOptions.h>
-#import <IJKMediaFramework/IJKFFMoviePlayerController.h>
-#import <IJKMediaFramework/IJKAVMoviePlayerController.h>
-#import <IJKMediaFramework/IJKMediaModule.h>
-#import <IJKMediaFramework/IJKMediaPlayer.h>
-#import <IJKMediaFramework/IJKNotificationManager.h>
-#import <IJKMediaFramework/IJKKVOController.h>
-#import <IJKMediaFramework/IJKSDLGLViewProtocol.h>
-#import <IJKMediaFramework/NebulaConnect.h>
+#import <OneCamFramework/IJKMediaPlayback.h>
+#import <OneCamFramework/IJKMPMoviePlayerController.h>
+#import <OneCamFramework/IJKFFOptions.h>
+#import <OneCamFramework/IJKFFMoviePlayerController.h>
+#import <OneCamFramework/IJKAVMoviePlayerController.h>
+#import <OneCamFramework/IJKMediaModule.h>
+#import <OneCamFramework/IJKMediaPlayer.h>
+#import <OneCamFramework/IJKNotificationManager.h>
+#import <OneCamFramework/IJKKVOController.h>
+#import <OneCamFramework/IJKSDLGLViewProtocol.h>
+#import <OneCamFramework/NebulaConnect.h>
+
 #pragma clang diagnostic pop
 
 // backward compatible for old names
