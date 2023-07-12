@@ -226,6 +226,8 @@
 		C3FB2C9222F930EA00CEA522 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 5450AF8F1E63E59800568494 /* libz.tbd */; };
 		D47A8F4529F68D89008FCB22 /* WebRTC.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C30977CD24D2D5A7005E8CA1 /* WebRTC.framework */; };
 		D47A8F4629F68D89008FCB22 /* WebRTC.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = C30977CD24D2D5A7005E8CA1 /* WebRTC.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		D4B9738A2A5ECB6200CC505D /* AVAPI3_interface.h in Headers */ = {isa = PBXBuildFile; fileRef = D4B973882A5ECB6200CC505D /* AVAPI3_interface.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		D4B9738B2A5ECB6200CC505D /* AVAPI4_interface.h in Headers */ = {isa = PBXBuildFile; fileRef = D4B973892A5ECB6200CC505D /* AVAPI4_interface.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		D4D44BD82A2A340B00F1EA10 /* NebulaConnect.h in Headers */ = {isa = PBXBuildFile; fileRef = D4D44BD62A2A340B00F1EA10 /* NebulaConnect.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		D4D44BD92A2A340B00F1EA10 /* NebulaConnect.h in Headers */ = {isa = PBXBuildFile; fileRef = D4D44BD62A2A340B00F1EA10 /* NebulaConnect.h */; };
 		D4D44BDA2A2A340B00F1EA10 /* NebulaConnect.m in Sources */ = {isa = PBXBuildFile; fileRef = D4D44BD72A2A340B00F1EA10 /* NebulaConnect.m */; };
@@ -467,6 +469,8 @@
 		C372653B24E3BAD80014BA30 /* Nebula_interface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Nebula_interface.h; sourceTree = "<group>"; };
 		C3FB2C8E22F930B100CEA522 /* libcrypto.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcrypto.a; path = ../build/universal/lib/libcrypto.a; sourceTree = "<group>"; };
 		C3FB2C9022F930CF00CEA522 /* libssl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libssl.a; path = ../build/universal/lib/libssl.a; sourceTree = "<group>"; };
+		D4B973882A5ECB6200CC505D /* AVAPI3_interface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AVAPI3_interface.h; path = IJKMediaPlayer/AVAPI3_interface.h; sourceTree = "<group>"; };
+		D4B973892A5ECB6200CC505D /* AVAPI4_interface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AVAPI4_interface.h; path = IJKMediaPlayer/AVAPI4_interface.h; sourceTree = "<group>"; };
 		D4D44BD62A2A340B00F1EA10 /* NebulaConnect.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NebulaConnect.h; sourceTree = "<group>"; };
 		D4D44BD72A2A340B00F1EA10 /* NebulaConnect.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = NebulaConnect.m; sourceTree = "<group>"; };
 		E607FFDE1B7B60F9005F11A6 /* IJKDeviceModel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = IJKDeviceModel.h; path = IJKMediaPlayer/IJKDeviceModel.h; sourceTree = "<group>"; };
@@ -904,6 +908,8 @@
 		E6903EB017EAF6C500CFD954 = {
 			isa = PBXGroup;
 			children = (
+				D4B973882A5ECB6200CC505D /* AVAPI3_interface.h */,
+				D4B973892A5ECB6200CC505D /* AVAPI4_interface.h */,
 				E66F8DBC17EEC2CF00354D80 /* Classes */,
 				E654EA8B1B6B27E600B0F2D0 /* IJKMediaFramework */,
 				E654EA981B6B27E600B0F2D0 /* IJKMediaFrameworkTests */,
@@ -1309,6 +1315,7 @@
 				E6C2E7BE1C92BD3600E59229 /* IJKKVOController.h in Headers */,
 				C309786424D2D787005E8CA1 /* ARDVideoCallView.h in Headers */,
 				E69808A01C7EB2040048A46C /* IJKNotificationManager.h in Headers */,
+				D4B9738A2A5ECB6200CC505D /* AVAPI3_interface.h in Headers */,
 				C309784C24D2D787005E8CA1 /* ARDExternalSampleCapturer.h in Headers */,
 				C309784524D2D787005E8CA1 /* ARDBitrateTracker.h in Headers */,
 				C309787924D2D787005E8CA1 /* RTCIceCandidate+JSON.h in Headers */,
@@ -1335,6 +1342,7 @@
 				C309784124D2D787005E8CA1 /* RTCSessionDescription+JSON.h in Headers */,
 				5407EC2D1DF81D2600457BFE /* IJKVideoToolBoxSync.h in Headers */,
 				C309783C24D2D787005E8CA1 /* ARDRoomServerClient.h in Headers */,
+				D4B9738B2A5ECB6200CC505D /* AVAPI4_interface.h in Headers */,
 				C309783D24D2D787005E8CA1 /* ARDSettingsModel.h in Headers */,
 				E654EAE91B6B295200B0F2D0 /* IJKMPMoviePlayerController.h in Headers */,
 				C309787C24D2D787005E8CA1 /* ARDUtilities.h in Headers */,

@@ -16,7 +16,7 @@
  */
 
 #import "IJKMediaControl.h"
-#import <IJKMediaFramework/IJKMediaFramework.h>
+#import <OneCamFramework/IJKMediaFramework.h>
 
 @implementation IJKMediaControl
 {

@@ -20,13 +20,13 @@
 #import "NebulaAPIs.h"
 #import "TUTKGlobalAPIs.h"
 #import "IOTCGlobalLock.h"
-#import "IJKMediaFramework/AVAPI3_interface.h"
-#import "IJKMediaFramework/AVAPI4_interface.h"
+#import "OneCamFramework/AVAPI3_interface.h"
+#import "OneCamFramework/AVAPI4_interface.h"
 #import "IJKMoviePlayerViewController.h"
 #import "IJKMediaControl.h"
 #import "IJKCommon.h"
 #import "IJKDemoHistory.h"
-#import "IJKMediaFramework/Nebula_interface.h"
+#import "OneCamFramework/Nebula_interface.h"
 
 const AVAPI3 avAPI3s = {
     .size = sizeof(AVAPI3),

@@ -16,7 +16,7 @@
  */
 
 #import <UIKit/UIKit.h>
-#import <IJKMediaFramework/IJKMediaFramework.h>
+#import <OneCamFramework/IJKMediaFramework.h>
 @class IJKMediaControl;
 
 @interface IJKVideoViewController : UIViewController
