@@ -538,12 +538,14 @@ static NebulaClientCtx *clientCtx;
 }
 - (void)testing:(NSNotification*)notification
 {
+    NSDictionary *userInfo = notification.userInfo;
+    NSLog(@"%@", userInfo[@"nebula_error"]);
     NSLog(@"Museer camera offline");
 }
 - (void)installNebullaObserver {
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(testing:)
-                                                 name:@"testing" object:NULL];
+                                                 name:@"didRecieveNebulaError" object:NULL];
 }
 
 #pragma mark Install Movie Notifications

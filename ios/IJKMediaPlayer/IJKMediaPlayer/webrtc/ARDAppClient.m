@@ -581,11 +581,10 @@ static int const kKbpsMultiplier = 1000;
 #endif
   char *response;
   int ret = _nebulaAPI->Send_Command(_nebulaAPI->ctx, [cmd UTF8String], &response, 30000);
-    //[[NSNotificationCenter defaultCenter] postNotificationName:@"testing" object:NULL userInfo: @{"key" : "value", "key2" : "value2"}];
-    [[NSNotificationCenter defaultCenter]
-     postNotificationName:@"testing"
-     object:self];
   if(ret < 0) {
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"didRecieveNebulaError"
+                                                        object:self
+                                                      userInfo: @{@"nebula_error" : @(ret)}];
     NSLog(@"Failed to Nebula_Client_Send_Command %@, errno: %d", cmd, ret);
     return nil;
   }
