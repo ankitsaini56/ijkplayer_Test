@@ -182,7 +182,7 @@ withMainView:(UIImageView *)mainView
 //- (NSDictionary *)startSpeaker;
 //- (NSDictionary *)stopSpeaker;
 - (char*)sendNebulaCommand:(NSString*)cmd;
--(void)stopWebRTC;
+- (void)stopWebRTC;
 
 @property(nonatomic, readonly)  UIView *view;
 @property(nonatomic)            NSTimeInterval currentPlaybackTime;

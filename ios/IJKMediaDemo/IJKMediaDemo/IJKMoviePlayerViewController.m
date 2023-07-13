@@ -94,12 +94,12 @@ static const char *AVAPI4_CREDENTIAL = "your_credential";
 static const char *AVAPI4_DMTOKEN = "your_dmtoken";
 static const char *AVAPI4_REALM = "your_realm";
 static const char *AVAPI4_FILENAME = "20200518013511";
-static const char *WEBRTC_UDID = "2B28RITAZWZFYCAZVJL0YIXMALDCS25BQI5IOKXU";
-static const char *WEBRTC_CREDENTIAL = "mcI+JFsQH6AK4ZJpgCb1hKUWKYB16BKzrcRCpkfpIRwJ/mLnW4F71Zo6QnuhrjVXuGCU4/qifHi2NfnOTX4/wCMkVcqy0fBANLH8nsZZ200DxCzEyYcyDNzZ3M6dPMqGeNYE2Bg7nvfWKRS2mbzrFBbAqf18ugj5OjmG7XfWi3mWRwOA7RZQ15cePaXmBbHlHTyEC4D6HbXHg+RD0/3+Rg==";
+static const char *WEBRTC_UDID = "2B28RITAZWZFYCAZVJL0WVUCP4JOMIOJCKN4WRAJ";
+static const char *WEBRTC_CREDENTIAL = "qh6CWY73ELHgvCc1oGWUrA0wTTCTdyBiMocp17AUmbLrp/k+IXJE3xpwMP8UVQzcNoTcGz+sGY+Bv/49MzG+rAK0+XMlwv5MZIdY4yM0Zmqxgnh3RiKeJBfkKFjXF6fgPnBuGUyl5YpO8KKLrBip2R9HILsFExkupDHdwzHnuNsyuLUhaw19G31vEGKnko4qb8WItXGecxvNkM2t5QASRw==";
 static const char *WEBRTC_DMTOKEN = "Oz7WSSkb1fDcFcS9DcZuCvqrDdZZWUCULJEznVkm9xo=";
 static const char *WEBRTC_REALM = "56ai";
 static const int WEBRTC_CHANNEL = IJK_NOCHANNEL_VALUE;
-static const int WEBRTC_EVENT_START_TIME = 1684560600;// 1684560600;//IJK_NOEVENT_VALUE; //1684585000
+static const int WEBRTC_EVENT_START_TIME = IJK_NOEVENT_VALUE;// 1684560600;//IJK_NOEVENT_VALUE; //1684585000
 
 //
 // <INFO>: If live url channel is not 0, need to add account, password, and session-id parameters to url.
@@ -148,7 +148,7 @@ static NebulaClientCtx *clientCtx;
 - (void)viewDidLoad
 {
     [super viewDidLoad];
-    
+    [self installNebullaObserver];
 #ifdef DEBUG
     [IJKFFMoviePlayerController setLogReport:YES];
     [IJKFFMoviePlayerController setLogLevel:k_IJK_LOG_DEBUG];
@@ -535,6 +535,15 @@ static NebulaClientCtx *clientCtx;
 - (void)videoRecordStart:(NSNotification*)notification
 {
     NSLog(@"videoRecordStart");
+}
+- (void)testing:(NSNotification*)notification
+{
+    NSLog(@"Museer camera offline");
+}
+- (void)installNebullaObserver {
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(testing:)
+                                                 name:@"testing" object:NULL];
 }
 
 #pragma mark Install Movie Notifications

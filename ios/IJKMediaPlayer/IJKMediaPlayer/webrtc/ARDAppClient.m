@@ -581,6 +581,10 @@ static int const kKbpsMultiplier = 1000;
 #endif
   char *response;
   int ret = _nebulaAPI->Send_Command(_nebulaAPI->ctx, [cmd UTF8String], &response, 30000);
+    //[[NSNotificationCenter defaultCenter] postNotificationName:@"testing" object:NULL userInfo: @{"key" : "value", "key2" : "value2"}];
+    [[NSNotificationCenter defaultCenter]
+     postNotificationName:@"testing"
+     object:self];
   if(ret < 0) {
     NSLog(@"Failed to Nebula_Client_Send_Command %@, errno: %d", cmd, ret);
     return nil;
@@ -664,7 +668,7 @@ NSDictionary *loadCache() {
     if(_settings.playbackStartTime >= 0 || _settings.playbackFileName != nil) {
       //startPlayback
       NSString *startPlaybackCmd = [self genStartPlayback:settings.channelId streamType:settings.streamType playbackStartTime:settings.playbackStartTime playbackFileName:settings.playbackFileName];
-      char *playbackResp = [self sendCommand:startPlaybackCmd];
+      char *playbackResp = [self sendCommand:startPlaybackCmd]; //
       if(playbackResp == nil) {
           NSLog(@"sendCommand start playback failed");
           return 0;
@@ -741,7 +745,7 @@ NSDictionary *loadCache() {
       
     NSString *startWebRtcExCmd = [self genStartWebRtcEx:settings.dmToken realm:settings.realm info:settings.info channelId:settings.channelId streamType:settings.streamType
       startTime:settings.playbackStartTime fileName:settings.playbackFileName];
-    char *obj = [self sendCommand:startWebRtcExCmd];
+    char *obj = [self sendCommand:startWebRtcExCmd]; //
     if(obj == nil) {
         NSLog(@"sendCommand start webrtcEx failed");
         return 0;
