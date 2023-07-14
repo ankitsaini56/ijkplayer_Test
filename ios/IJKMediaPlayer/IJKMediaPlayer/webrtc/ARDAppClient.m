@@ -581,12 +581,21 @@ _defaultPeerConnectionConstraints;
 #endif
     char *response;
     int ret = _nebulaAPI->Send_Command(_nebulaAPI->ctx, [cmd UTF8String], &response, 30000);
+    
+    // 56Secure Response Handling
+    NSMutableDictionary *notificationInfo = [[NSMutableDictionary alloc] init];
+    notificationInfo[@"error"] = @(ret);
+    notificationInfo[@"command"] = cmd;
+    if (response != nil) {
+        notificationInfo[@"response"] = @(response);
+    }
+    [[NSNotificationCenter defaultCenter] postNotificationName: @"didRecieveNebulaResponse"
+                                                        object: self
+                                                      userInfo: notificationInfo
+    ];
+    //
+    
     if(ret < 0) {
-        if ([cmd rangeOfString:@"stopWebRtc"].location == NSNotFound) {
-            [[NSNotificationCenter defaultCenter] postNotificationName:@"didRecieveNebulaError"
-                                                                object:self
-                                                              userInfo: @{@"nebula_error" : @(ret)}];
-        }
         NSLog(@"Failed to Nebula_Client_Send_Command %@, errno: %d", cmd, ret);
         return nil;
     }
