@@ -763,8 +763,10 @@ inline static int getPlayerOption(IJKFFOptionCategory category)
 
 - (void)shutdown:(BOOL)async
 {
-    if (!_mediaPlayer)
+    if (!_mediaPlayer) {
+        [self didShutdown];
         return;
+    }
     
     self.inShutdown = YES;
     ijkmp_stop(_mediaPlayer);
