@@ -11,7 +11,7 @@ This file describes AV module APIs for server.
 extern "C" {
 #endif
 
-#include "AVAPIs/AVCommon.h"
+#include "AVCommon.h"
 
 typedef struct st_AvStatus {
     uint32_t AvVersion;

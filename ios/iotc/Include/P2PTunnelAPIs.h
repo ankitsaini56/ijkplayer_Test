@@ -11,7 +11,7 @@ like port mapping among devices and clients. ex: Web, ssh etc.
 #ifndef _P2PTunnelAPIs_H_
 #define _P2PTunnelAPIs_H_
 
-#include "P2PTunnelAPIs/P2PTunnelAgent.h"
-#include "P2PTunnelAPIs/P2PTunnelServer.h"
+#include "P2PTunnelAgent.h"
+#include "P2PTunnelServer.h"
 
 #endif

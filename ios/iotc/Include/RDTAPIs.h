@@ -9,7 +9,7 @@ Reliable Data Transfer among RDT servers and RDT clients in bi-directional way.
 #ifndef _RDTAPIs_H_
 #define _RDTAPIs_H_
 
-#include "RDTAPIs/RDTClient.h"
-#include "RDTAPIs/RDTServer.h"
+#include "RDTClient.h"
+#include "RDTServer.h"
 
 #endif

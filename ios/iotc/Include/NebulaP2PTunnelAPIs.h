@@ -104,6 +104,7 @@ TUNNEL_API int32_t P2PTunnelServer_Start_By_Nebula(NebulaDeviceCtx *pDeviceCtx, 
  *			- #TUNNEL_ER_NETWORK_UNREACHABLE Internet is not available or firewall blocks connection
  *			- #TUNNEL_ER_FAILED_SETUP_CONNECTION Can't connect to the tunnel server although it is online
  *					and listening for connection, it maybe caused by internet unstable situation
+ *			- #TUNNEL_ER_OPERATION_IS_INVALID Not support manual mode
  *			- #TUNNEL_ER_HANDSHAKE_FAILED Create connection fail
  *			- #TUNNEL_ER_REMOTE_NOT_SUPPORT_DTLS Remote not support DTLS
  *			- #TUNNEL_ER_TIMEOUT Connect timeout

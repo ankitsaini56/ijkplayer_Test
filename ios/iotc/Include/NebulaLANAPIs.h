@@ -27,7 +27,32 @@ Version     | Name             |Date           |Description
  * ============================================================================
  */
 
-#define NEBULA_LAN_API
+#ifdef _WIN32
+    #ifdef IOTC_STATIC_LIB
+        #define NEBULA_LAN_API
+    #elif defined P2PAPI_EXPORTS
+        #define NEBULA_LAN_API __declspec(dllexport)
+    #else
+        #define NEBULA_LAN_API __declspec(dllimport)
+    #endif
+#else
+    #define NEBULA_LAN_API
+    #define __stdcall
+#endif
+
+#if defined(__GNUC__) || defined(__clang__)
+    #define NEBULA_LAN_API_DEPRECATED __attribute__((deprecated))
+#elif defined(_MSC_VER)
+    #ifdef IOTC_STATIC_LIB
+        #define NEBULA_LAN_API_DEPRECATED __declspec(deprecated)
+    #elif defined P2PAPI_EXPORTS
+        #define NEBULA_LAN_API_DEPRECATED __declspec(deprecated, dllexport)
+    #else
+        #define NEBULA_LAN_API_DEPRECATED __declspec(deprecated, dllimport)
+    #endif
+#else
+    #define NEBULA_LAN_API_DEPRECATED
+#endif
 
 #ifdef __cplusplus
 extern "C" {

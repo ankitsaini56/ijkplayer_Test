@@ -11,7 +11,7 @@ This file describes RDT module APIs for server.
 extern "C" {
 #endif
 
-#include "RDTAPIs/RDTCommon.h"
+#include "RDTCommon.h"
 
 /**
  * \details The prototype of authenticating connect informations, used by a RDT server

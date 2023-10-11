@@ -11,8 +11,8 @@ This file describes AV module APIs for VSaaS.
 extern "C" {
 #endif
 
-#include "NebulaAPIs/NebulaDevice.h"
-#include "AVAPIs/AVCommon.h"
+#include "NebulaDevice.h"
+#include "AVCommon.h"
 
 typedef enum VSaaSType {
     VSAAS_AWS,

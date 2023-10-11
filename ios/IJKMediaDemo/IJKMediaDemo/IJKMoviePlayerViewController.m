@@ -27,6 +27,8 @@
 #import "IJKCommon.h"
 #import "IJKDemoHistory.h"
 #import "OneCamFramework/Nebula_interface.h"
+#import "P2PTunnelAgent.h"
+#import "NebulaP2PTunnelAPIs.h"
 
 const AVAPI3 avAPI3s = {
     .size = sizeof(AVAPI3),
@@ -94,10 +96,12 @@ static const char *AVAPI4_CREDENTIAL = "your_credential";
 static const char *AVAPI4_DMTOKEN = "your_dmtoken";
 static const char *AVAPI4_REALM = "your_realm";
 static const char *AVAPI4_FILENAME = "20200518013511";
-static const char *WEBRTC_UDID = "2B28RITAZWZFYCAZVJL0WVUCP4JOMIOJCKN4WRAJ";
-static const char *WEBRTC_CREDENTIAL = "qh6CWY73ELHgvCc1oGWUrA0wTTCTdyBiMocp17AUmbLrp/k+IXJE3xpwMP8UVQzcNoTcGz+sGY+Bv/49MzG+rAK0+XMlwv5MZIdY4yM0Zmqxgnh3RiKeJBfkKFjXF6fgPnBuGUyl5YpO8KKLrBip2R9HILsFExkupDHdwzHnuNsyuLUhaw19G31vEGKnko4qb8WItXGecxvNkM2t5QASRw==";
+static const char *WEBRTC_UDID = "2B28RITAZWZFYCAZVJL0PGP2PBQUL6KLI7DSRZSY";
+static const char *WEBRTC_CREDENTIAL = "hDk5ebIDCzbkZlRH9kIKK8EULG2N6EL4qvV5LSF/A7BntXaqgUL6BHqcpHfD0xZKdwskSPPka+HfIDgcMgnPpGbHmyxd75M48D7DWMlzw4K4yen0sCMrz+rC+8kpO4B/5IqhdK22jlp63yh9iQCa1ZBOtL3T7xT4b6t5ciG1Ig8u07wv10gH1wYGM/9OVt6CEY44W4F+WUgGVK3mQIeCKA==";
 static const char *WEBRTC_DMTOKEN = "Oz7WSSkb1fDcFcS9DcZuCvqrDdZZWUCULJEznVkm9xo=";
 static const char *WEBRTC_REALM = "56ai";
+static const char *TUNNEL_DMTOKEN = "dFNIVTBXSERFNllFN0JNWXY4OUdRR01DMzZDVE16Vk06T3NuaFpjM2g0MUpGNVRnRENpb3dtN1NscFVQbzRoc2M6NTZhaQ==";
+static const char *TUNNEL_REALM = "56ai";
 static const int WEBRTC_CHANNEL = IJK_NOCHANNEL_VALUE;
 static const int WEBRTC_EVENT_START_TIME = IJK_NOEVENT_VALUE;// 1684560600;//IJK_NOEVENT_VALUE; //1684585000
 
@@ -167,6 +171,8 @@ static NebulaClientCtx *clientCtx;
         [options setOptionIntValue:1 forKey:@"enable-get-frame" ofCategory:kIJKFFOptionCategoryPlayer];
     }
 
+    [self writeTunnelLogs];
+
     TUTK_SDK_Set_License_Key(IOTC_LICENSE_KEY);
     if (DEMO_AVAPI3) {
         IOTC_Initialize2(0);
@@ -232,24 +238,28 @@ static NebulaClientCtx *clientCtx;
         nebulaAPIs.ctx = (long)ctx;
         self.player = [[IJKFFMoviePlayerController alloc] initWithOptions:options];
 
-        long webrtc_id = [self.player startWebRTC:@(WEBRTC_DMTOKEN)
-                                    andRealm:@(WEBRTC_REALM)
-                                     andNebulaAPI:&nebulaAPIs
-                                    andStreamType:IJKStreamTypeAudioAndVideo
-                                     andStartTime:WEBRTC_EVENT_START_TIME
-                                      andFileName:@"x1_ravi"
-                                     andChannelId:WEBRTC_CHANNEL
-                                andIsQuickConnect:true];
-        if (webrtc_id == INVALID_WEBRTC_ID) {
-            NSLog(@"start webrtc failed!");
-            return;
-        }
-        char url[512];
-        int eventDurationMS = 10000;
-        sprintf(url, WEBRTC_PLAYBACK_URL, webrtc_id, eventDurationMS);
-        sprintf(url, WEBRTC_LIVE_URL, webrtc_id);
-        [self.player setVideoPath:@(url)];
-        [self.player setWebRTCMic:YES];
+//        long webrtc_id = [self.player startWebRTC:@(WEBRTC_DMTOKEN)
+//                                    andRealm:@(WEBRTC_REALM)
+//                                     andNebulaAPI:&nebulaAPIs
+//                                    andStreamType:IJKStreamTypeAudioAndVideo
+//                                     andStartTime:WEBRTC_EVENT_START_TIME
+//                                      andFileName:@"x1_ravi"
+//                                     andChannelId:WEBRTC_CHANNEL
+//                                andIsQuickConnect:true];
+//        if (webrtc_id == INVALID_WEBRTC_ID) {
+//            NSLog(@"start webrtc failed!");
+//            return;
+//        }
+//        char url[512];
+//        int eventDurationMS = 10000;
+//        sprintf(url, WEBRTC_PLAYBACK_URL, webrtc_id, eventDurationMS);
+//        sprintf(url, WEBRTC_LIVE_URL, webrtc_id);
+//        [self.player setVideoPath:@(url)];
+//        [self.player setWebRTCMic:YES];
+
+        [self startTunnel:ctx];
+        NSString *url = [NSString stringWithFormat:@"rtsp://127.0.0.1:%d/main_stream", 10000];
+        [self.player setVideoPath:url];
     }else {
         self.player = [[IJKFFMoviePlayerController alloc] initWithContentURL:self.url withOptions:options];
     }
@@ -288,6 +298,53 @@ static NebulaClientCtx *clientCtx;
         self.subImage = [[UIImageView alloc] initWithFrame: CGRectMake(0,0,320,180)];
         [self.view addSubview:self.subImage];
     }
+}
+
+-(NSString*) writeTunnelLogs {
+    LogAttr logAttr;
+    NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSString *filePath_p2p = [[paths objectAtIndex:0] stringByAppendingPathComponent:@"log_p2p_tunnel"];
+    logAttr.path = [filePath_p2p UTF8String];
+//    logAttr.log_level = 0;
+//    logAttr.file_max_size = 0;
+//    logAttr.file_max_count = 0;
+//
+    P2PTunnel_Set_Log_Attr(logAttr);
+    printf("p2P log path[%s]\n", logAttr.path);
+    return filePath_p2p;
+}
+
+
+//    NSString * responseString = @"This is a test writing file by Ankit";
+//    NSError* error;
+//    [responseString writeToFile:filePath_p2p atomically:YES encoding:NSUTF8StringEncoding error:&error];
+
+
+-(void)startTunnel:(NebulaClientCtx *)ctx {
+
+//    NSURL* pathUrl = [NSURL URLWithString:path];
+    int retTunel = P2PTunnelAgentInitialize(2);
+    if (retTunel < 0 ) {
+        NSLog(@"Tunnel Init error");
+    }
+    NSLog(@"Tunnel Init P2PTunnelAgentInitialize done");
+    int32_t sid = P2PTunnelAgent_Connect_By_Nebula(ctx, TUNNEL_DMTOKEN, TUNNEL_REALM, 10000);
+    NSLog(@"Tunnel Init P2PTunnelAgent_Connect_By_Nebula with dmtoken %s and realm %s  and Got sid response =  %d", TUNNEL_DMTOKEN, TUNNEL_REALM, sid);
+    P2PTunnel_SetBufSize(sid, 5120000);
+    int32_t index = P2PTunnelAgent_PortMapping(sid, 10000, 554);
+    NSLog(@"Tunnel Init P2PTunnelAgentInitialize done with Index %d",index);
+
+
+    NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSString *filePath = [[paths objectAtIndex:0] stringByAppendingPathComponent:@"log_p2p_tunnel"];
+    NSError* error;
+    NSString *fileContent = [[NSString alloc] initWithContentsOfFile:filePath encoding:NSUTF8StringEncoding error:&error];
+
+//    [[NSString alloc] initWithContentsOfURL:[NSURL URLWithString:filePath] encoding:NSUTF8StringEncoding  error:&error];
+    NSData *date = [[NSData alloc] initWithContentsOfURL:[NSURL URLWithString:filePath]];
+//    [NSURL fileURLWithPath:filePath]
+//    NSString * logs = [NSString stringWithContentsOfURL:pathUrl encoding:NSUTF8StringEncoding error:nil];
+    NSLog(@"Printign logs %@ and error %@", fileContent, error);
 }
 
 - (void)viewWillAppear:(BOOL)animated {

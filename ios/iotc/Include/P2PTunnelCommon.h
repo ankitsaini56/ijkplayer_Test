@@ -175,15 +175,21 @@ extern "C" {
 /** API timeout*/
 #define     TUNNEL_ER_TIMEOUT                           -30030
 
-#define     TUNNEL_ER_UNDEFINED              			-31000
-
 /** The remote site already closes the IOTC session.
  * Please call IOTC_Session_Close() to release local IOTC session resource */
-#define     TUNNEL_ER_SESSION_CLOSE_BY_REMOTE       -30031
+#define     TUNNEL_ER_SESSION_CLOSE_BY_REMOTE           -30031
 
 /** This IOTC session is disconnected because remote site has no any response
  * after a specified timeout expires. */
-#define     TUNNEL_ER_REMOTE_TIMEOUT_DISCONNECT     -30032
+#define     TUNNEL_ER_REMOTE_TIMEOUT_DISCONNECT         -30032
+
+/** API or remote reject*/
+#define     TUNNEL_ER_REJECT                            -30033
+
+/** retry API*/
+#define     TUNNEL_ER_RETRY                             -30034
+
+#define     TUNNEL_ER_UNDEFINED              			-31000
 
 
 /* ============================================================================

@@ -140,7 +140,7 @@ static const int TRACKING_THRESHOLD_IN_SECONDS = 3;
 }
 
 - (void)appClient:(ARDAppClient *)client
-    didChangeConnectionState:(RTCIceConnectionState)state {
+didChangeConnectionState:(RTCIceConnectionState)state {
     NSLog(@"ICE state changed: %ld", (long)state);
     if (state == RTCIceConnectionStateDisconnected) {
         if (!self.inShutdown) {
@@ -1312,6 +1312,7 @@ inline static void fillMetaInternal(NSMutableDictionary *meta, IjkMediaMeta *raw
              userInfo:@{
                         IJKMPMoviePlayerPlaybackDidFinishReasonUserInfoKey: @(IJKMPMovieFinishReasonPlaybackError),
                         @"error": @(avmsg->arg1)}];
+//            @"errorMessage":@(avmsg->_msg
             if (self.onDownloadCompleted != NULL) {
                 self.onDownloadCompleted(avmsg->arg1);
             }

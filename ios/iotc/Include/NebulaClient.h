@@ -11,7 +11,7 @@ This file describes Nebula module APIs for client.
 extern "C" {
 #endif
 
-#include "NebulaAPIs/NebulaCommon.h"
+#include "NebulaCommon.h"
 
 typedef struct NebulaClientCtx {
     void *info; // Extra info can be attached to NebulaClientCtx

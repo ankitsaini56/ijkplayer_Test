@@ -11,7 +11,7 @@ This file describes AV module APIs for client.
 extern "C" {
 #endif
 
-#include "AVAPIs/AVCommon.h"
+#include "AVCommon.h"
 
 /**
  * \details The input configuration of avClientStartEx

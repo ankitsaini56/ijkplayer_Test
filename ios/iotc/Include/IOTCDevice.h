@@ -11,8 +11,8 @@ This file describes IOTC module APIs of device.
 extern "C" {
 #endif /* __cplusplus */
 
-#include "NebulaAPIs/NebulaDevice.h"
-#include "IOTCAPIs/IOTCCommon.h"
+#include "NebulaDevice.h"
+#include "IOTCCommon.h"
 
 /// For IOTC_Device_LoginEx
 typedef struct DeviceLoginInput {

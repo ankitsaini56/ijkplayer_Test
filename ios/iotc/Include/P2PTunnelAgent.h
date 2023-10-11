@@ -11,7 +11,7 @@ This file describes P2PTunnel module APIs for agent.
 extern "C" {
 #endif
 
-#include "P2PTunnelAPIs/P2PTunnelCommon.h"
+#include "P2PTunnelCommon.h"
 
 /**
  * \details The prototype of authenticating connect informations, used by a tunnel agent
@@ -344,6 +344,8 @@ TUNNEL_API int32_t P2PTunnelAgent_Abort(int32_t nSessionID);
  *			- #TUNNEL_ER_LISTEN_LOCAL_SERVICE Failed to listen local port since it is used by the other services
  *			- #TUNNEL_ER_OS_RESOURCE_LACK Failed to malloc memory
  *			- #TUNNEL_ER_INVALID_ARG The session ID is not in valid range.
+ *			- #TUNNEL_ER_REJECT Device reject this port mapping.
+ *			- #TUNNEL_ER_RETRY Call this API in multithread.
  */
 TUNNEL_API int32_t P2PTunnelAgent_PortMapping(int32_t nSessionID, uint16_t nLocalPort, uint16_t nRemotePort);
 

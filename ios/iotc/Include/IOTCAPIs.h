@@ -9,8 +9,8 @@ transfer among devices and clients.
 #ifndef _IOTCAPIs_H_
 #define _IOTCAPIs_H_
 
-#include "IOTCAPIs/IOTCClient.h"
-#include "IOTCAPIs/IOTCDevice.h"
+#include "IOTCClient.h"
+#include "IOTCDevice.h"
 
 #endif
 

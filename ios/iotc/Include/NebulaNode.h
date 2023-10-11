@@ -11,7 +11,7 @@ This file describes Nebula module APIs for device.
 extern "C" {
 #endif
 
-#include "NebulaAPIs/NebulaDevice.h"
+#include "NebulaDevice.h"
 
 typedef struct NebulaNodeCtx {
     void *info; // Extra info can be attached to NebulaNodeCtx

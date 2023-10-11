@@ -11,7 +11,7 @@ This file describes Nebula module APIs for device.
 extern "C" {
 #endif
 
-#include "NebulaAPIs/NebulaCommon.h"
+#include "NebulaCommon.h"
 
 #define MAX_PROFILE_LENGTH 45000
 #define NEBULA_MAX_SLEEP_ALIVE_PACKET_SIZE 256

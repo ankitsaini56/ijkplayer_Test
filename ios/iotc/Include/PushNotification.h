@@ -11,7 +11,7 @@ This file describes AV module APIs for push notification service.
 extern "C" {
 #endif
 
-#include "AVAPIs/AVCommon.h"
+#include "AVCommon.h"
 
 /**
  * \brief Enable push notification service

@@ -10,10 +10,10 @@ unidirectional way.
 #ifndef _AVAPIs_H_
 #define _AVAPIs_H_
 
-#include "AVAPIs/AVClient.h"
-#include "AVAPIs/AVServer.h"
-#include "AVAPIs/DASA.h"
-#include "AVAPIs/VSaaS.h"
-#include "AVAPIs/PushNotification.h"
+#include "AVClient.h"
+#include "AVServer.h"
+#include "DASA.h"
+#include "VSaaS.h"
+#include "PushNotification.h"
 
 #endif

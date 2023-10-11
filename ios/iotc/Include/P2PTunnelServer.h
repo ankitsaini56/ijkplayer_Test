@@ -11,7 +11,7 @@ This file describes P2PTunnel module APIs for agent.
 extern "C" {
 #endif
 
-#include "P2PTunnelAPIs/P2PTunnelCommon.h"
+#include "P2PTunnelCommon.h"
 
 /**
  * \details P2PTunnel session info, containing all the information when a P2PTunnel session is
@@ -71,6 +71,17 @@ typedef int32_t (__stdcall *tunnelSessionInfoCB)(sP2PTunnelSessionInfo *sSession
 typedef void (__stdcall *tunnelSessionInfoExCB)(sP2PTunnelSessionInfoEx *sSessionInfo, const void *pArg);
 
 /**
+ * \details The prototype of Tunnel server verify port of service.
+ *
+ * \param nServicePort [in] port number that Tunnel agent want to access
+ * \param pArg [in] Tunnel server pass user data
+ *
+ * \return 0 if port passes.
+ * \return < 0 to reject access
+ */
+typedef int32_t(__stdcall *tunnelPortVerifyCB)(uint16_t nServicePort, const void *pArg);
+
+/**
  * \details The prototype of authenticating connect informations, used by a tunnel server
  *			to be notified when connection start.
  *
@@ -128,6 +139,20 @@ TUNNEL_API int32_t P2PTunnelServerInitialize(uint32_t nMaxAgentConnection);
  * \attention This function can't be called simultaneously from multiple threads.
  */
 TUNNEL_API int32_t P2PTunnelServerDeInitialize(void);
+
+/**
+ * \brief Register Callback function for verify service port.
+ *
+ * \details When Tunnel server recevice request for access service at specific port from remote, SDK will invoke callback function.
+ *
+ * \param pfxTunnelPortVerifyFn [in]  The function pointer to verify service port function. set NULL means allow all port.
+ * \param pArg [in] User can give data pointer to pass to pfxTunnelPortVerifyFn when this callback function is triggered. Can be NULL.
+ *
+ * \return #TUNNEL_ER_NoERROR if register successfully
+ * \return Error code if return value < 0
+ *			- #TUNNEL_ER_NOT_INITIALIZED P2PModule has not been initialized in that tunnel server
+ */
+TUNNEL_API int32_t P2PTunnelServer_Register_Port_Verify(tunnelPortVerifyCB pfxTunnelPortVerifyFn, const void *pArg);
 
 /**
  * \brief Use the existed iotc session to listen incoming P2PTunnel connection

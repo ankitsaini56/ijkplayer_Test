@@ -13,9 +13,9 @@ transfer among devices and clients.
 extern "C" {
 #endif
 
-#include "NebulaAPIs/NebulaClient.h"
-#include "NebulaAPIs/NebulaDevice.h"
-#include "NebulaAPIs/NebulaNode.h"
+#include "NebulaClient.h"
+#include "NebulaDevice.h"
+#include "NebulaNode.h"
 
 #ifdef __cplusplus
 }

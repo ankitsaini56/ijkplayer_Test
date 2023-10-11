@@ -11,7 +11,7 @@ This file describes AV module APIs for DASA(Dynamic Adaptive Streaming over AVAP
 extern "C" {
 #endif
 
-#include "AVAPIs/AVCommon.h"
+#include "AVCommon.h"
 
 typedef enum _AV_DASA_LEVEL_ {
     AV_DASA_LEVEL_QUALITY_HIGH          = 0,

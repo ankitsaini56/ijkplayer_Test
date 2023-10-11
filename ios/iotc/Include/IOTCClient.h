@@ -11,8 +11,8 @@ This file describes IOTC module APIs for client.
 extern "C" {
 #endif /* __cplusplus */
 
-#include "NebulaAPIs/NebulaClient.h"
-#include "IOTCAPIs/IOTCCommon.h"
+#include "NebulaClient.h"
+#include "IOTCCommon.h"
 
 /**
  * \details Connect Option, containing all options of connection setup when client connects to device by P2P or relay mode.
@@ -370,10 +370,10 @@ P2PAPI_API int32_t IOTC_Set_Connection_Option(struct st_ConnectOption *S_Connect
 /**
 * \brief Used by a client to connect a device with Nebula
 *
-* \details ...
+* \details This function is for a client to connect a device with nebula client context
 *
 * \param client_ctx [in] Nebula context of client, it's from Nebula_Client_New() or Nebula_Client_New_From_String()
-* \param rent_am_token [in] The rental token from AM server
+* \param rent_token [in] The rental token
 * \param realm [in] The realm of rental server needed for device
 * \param iotc_authkey [in] Same Authkey of Nebula_Device_New(), allow '0'~'9' & 'A'~'Z' & 'a'~'z'
 * \param timeout_msec [in] The timeout for this function in unit of millisecond, give 0 means return immediately
@@ -386,7 +386,7 @@ P2PAPI_API int32_t IOTC_Set_Connection_Option(struct st_ConnectOption *S_Connect
 *
 * \attention (1) Recommended value of timeout: 1000 millisecond ~ 30000 millisecond
 **/
-P2PAPI_API int IOTC_Client_Connect_By_Nebula(NebulaClientCtx* client_ctx, const char *rent_am_token, const char *realm, unsigned int timeout_msec, unsigned int *abort_flag);
+P2PAPI_API int IOTC_Client_Connect_By_Nebula(NebulaClientCtx* client_ctx, const char *rent_token, const char *realm, unsigned int timeout_msec, unsigned int *abort_flag);
 
 /**
  * \brief Setup LAN search and LAN connection timeout

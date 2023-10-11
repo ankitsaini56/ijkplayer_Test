@@ -87,6 +87,142 @@ typedef enum NebulaJsonType {
 typedef struct NebulaJsonObject NebulaJsonObject;
 
 /**
+ * \brief New a empty NebulaJsonObject
+ *
+ * \details Create a new NebulaJsonObject which type is JSON_TYPE_OBJECT, but empty.
+ *
+ * \return NebulaJsonObject
+ */
+NEBULA_JSON_API NebulaJsonObject *Nebula_Json_Obj_New_Empty_Obj(void);
+
+/**
+ * \brief 
+ *
+ * \details Create a new NebulaJsonObject of type JSON_TYPE_BOOL
+ *
+ * \param bool_value [in] 
+ *
+ * \return NebulaJsonObject which type is JSON_TYPE_BOOL.
+ * 
+ */
+NEBULA_JSON_API NebulaJsonObject *Nebula_Json_Obj_New_Bool(const int32_t bool_value);
+
+/**
+ * \brief 
+ *
+ * \details Create a new NebulaJsonObject of type JSON_TYPE_DOUBLE
+ *
+ * \param double_value [in] 
+ *
+ * \return NebulaJsonObject which type is JSON_TYPE_DOUBLE.
+ * 
+ */
+NEBULA_JSON_API NebulaJsonObject *Nebula_Json_Obj_New_Double(const double double_value);
+
+/**
+ * \brief 
+ *
+ * \details Create a new NebulaJsonObject of type JSON_TYPE_INT
+ *
+ * \param int_value [in] 
+ *
+ * \return NebulaJsonObject which type is JSON_TYPE_INT.
+ * 
+ */
+NEBULA_JSON_API NebulaJsonObject *Nebula_Json_Obj_New_Int(const int32_t int_value);
+
+/**
+ * \brief 
+ *
+ * \details Create a new NebulaJsonObject of type JSON_TYPE_STRING
+ *
+ * \param string_value [in] 
+ *
+ * \return NebulaJsonObject which type is JSON_TYPE_STRING.
+ * 
+ */
+NEBULA_JSON_API NebulaJsonObject *Nebula_Json_Obj_New_String(const char *string_value);
+
+/**
+ * \brief 
+ *
+ * \details Add an object field to the parent_obj of type JSON_TYPE_OBJECT
+ *
+ * \param parent_obj [in] 
+ * \param key [in] 
+ * \param value_obj [in] 
+ *
+ * \return 
+ * 
+ */
+NEBULA_JSON_API int32_t Nebula_Json_Obj_Obj_Add(const NebulaJsonObject *parent_obj, const char *key, const NebulaJsonObject *value_obj);
+
+/**
+ * \brief 
+ *
+ * \details Remove the given NebulaJsonObject field
+ *
+ * \param json_obj [in] 
+ * \param key [in] 
+ *
+ * \return 
+ * 
+ */
+NEBULA_JSON_API int32_t Nebula_Json_Obj_Obj_Remove(const NebulaJsonObject *json_obj, const char *key);
+
+/**
+ * \brief 
+ *
+ * \details Create a new NebulaJsonObject of type JSON_TYPE_ARRAY
+ *
+ *
+ * \return 
+ * 
+ */
+NEBULA_JSON_API NebulaJsonObject *Nebula_Json_Obj_New_Empty_Array(void);
+
+/**
+ * \brief 
+ *
+ * \details Add an element to the end of a NebulaJsonObject of type JSON_TYPE_ARRAY
+ *
+ * \param array_obj [in] 
+ * \param value_obj [in] 
+ *
+ * \return 
+ * 
+ */
+NEBULA_JSON_API int32_t Nebula_Json_Obj_Array_Add(const NebulaJsonObject *array_obj, const NebulaJsonObject *value_obj);
+
+/**
+ * \brief 
+ *
+ * \details Insert an element at a specified index in an array (a NebulaJsonObject of type JSON_TYPE_ARRAY)
+ *
+ * \param array_obj [in] 
+ * \param index [in] 
+ * \param value_obj [in] 
+ *
+ * \return 
+ * 
+ */
+NEBULA_JSON_API int32_t Nebula_Json_Obj_Array_Insert(const NebulaJsonObject *array_obj, int32_t index, const NebulaJsonObject *value_obj);
+
+/**
+ * \brief 
+ *
+ * \details Delete an elements from a specified index in an array (a NebulaJsonObject of type JSON_TYPE_ARRAY)
+ *
+ * \param array_obj [in] 
+ * \param index [in] 
+ * \param count [in] 
+ *
+ * \return 
+ * 
+ */
+NEBULA_JSON_API int32_t Nebula_Json_Obj_Array_Delete(const NebulaJsonObject *array_obj, int32_t index, int32_t count);
+
+/**
  * \brief New a NebulaJsonObject from vaild JSON string.
  *
  * \details Parse a string and return a non-NULL json_object if a valid JSON value is found.
