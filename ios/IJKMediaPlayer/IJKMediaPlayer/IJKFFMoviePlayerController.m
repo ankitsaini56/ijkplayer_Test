@@ -764,6 +764,7 @@ inline static int getPlayerOption(IJKFFOptionCategory category)
 - (void)shutdown:(BOOL)async
 {
     if (!_mediaPlayer) {
+        NSLog(@"Media Player is nil so player already shutdown 1");
         [self didShutdown];
         return;
     }
@@ -784,9 +785,11 @@ inline static int getPlayerOption(IJKFFOptionCategory category)
 
 - (void)shutdownWaitStop:(IJKFFMoviePlayerController *) mySelf
 {
-    if (!_mediaPlayer)
+    if (!_mediaPlayer) {
+        [self didShutdown];
+        NSLog(@"Media Player is nil so player already shutdown 2");
         return;
-
+    }
     if (self.asyncShutdown) {
         ijkmp_shutdown(_mediaPlayer);
     }
@@ -796,9 +799,11 @@ inline static int getPlayerOption(IJKFFOptionCategory category)
 
 - (void)shutdownClose:(IJKFFMoviePlayerController *) mySelf
 {
-    if (!_mediaPlayer)
+    if (!_mediaPlayer) {
+        [self didShutdown];
+        NSLog(@"Media Player is nil so player already shutdown 3");
         return;
-    
+    }
     _segmentOpenDelegate    = nil;
     _tcpOpenDelegate        = nil;
     _httpOpenDelegate       = nil;
