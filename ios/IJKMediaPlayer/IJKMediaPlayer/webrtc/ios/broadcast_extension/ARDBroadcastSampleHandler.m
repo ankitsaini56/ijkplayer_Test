@@ -100,7 +100,7 @@
 }
 
 - (void)appClient:(ARDAppClient *)client didChangeConnectionState:(RTCIceConnectionState)state {
-  RTCLog(@"ICE state changed: %ld", (long)state);
+  RTCLog(@"ICE state changed: >> %ld", (long)state);
 }
 
 - (void)appClient:(ARDAppClient *)client

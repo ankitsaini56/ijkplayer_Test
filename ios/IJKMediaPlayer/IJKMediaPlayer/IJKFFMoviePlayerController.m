@@ -141,17 +141,18 @@ static const int TRACKING_THRESHOLD_IN_SECONDS = 3;
 
 - (void)appClient:(ARDAppClient *)client
     didChangeConnectionState:(RTCIceConnectionState)state {
-    NSLog(@"ICE state changed: %ld", (long)state);
-    if (state == RTCIceConnectionStateDisconnected) {
-        if (!self.inShutdown) {
+    NSLog(@"ICE state changed: >>>> %ld", (long)state);
+        if (state == RTCIceConnectionStateDisconnected) {
+            // If shut down here then it will try to make connection again
+//        if (!self.inShutdown) {
             [[NSNotificationCenter defaultCenter]
              postNotificationName:IJKMPMoviePlayerPlaybackDidFinishNotification
              object:self
              userInfo:@{
                         IJKMPMoviePlayerPlaybackDidFinishReasonUserInfoKey: @(IJKMPMovieFinishReasonPlaybackError),
                         @"error": @(0)}];
-            [self shutdown];
-        }
+//            [self shutdown];
+//        }
     }
 }
 
@@ -821,7 +822,7 @@ inline static int getPlayerOption(IJKFFOptionCategory category)
 {
     [[NSNotificationCenter defaultCenter]
      postNotificationName:IJKMPMediaShutDownNotification
-     object:self];
+     object:nil];
 }
 
 - (IJKMPMoviePlaybackState)playbackState

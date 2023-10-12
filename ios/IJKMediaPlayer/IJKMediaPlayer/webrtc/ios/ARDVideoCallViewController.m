@@ -90,7 +90,7 @@
 
 - (void)appClient:(ARDAppClient *)client
     didChangeConnectionState:(RTCIceConnectionState)state {
-  RTCLog(@"ICE state changed: %ld", (long)state);
+  RTCLog(@"ICE state changed: >>> %ld", (long)state);
   __weak ARDVideoCallViewController *weakSelf = self;
   dispatch_async(dispatch_get_main_queue(), ^{
     ARDVideoCallViewController *strongSelf = weakSelf;

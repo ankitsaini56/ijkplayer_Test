@@ -906,7 +906,7 @@ didStartReceivingOnTransceiver:(RTC_OBJC_TYPE(RTCRtpTransceiver) *)transceiver {
 
 - (void)peerConnection:(RTC_OBJC_TYPE(RTCPeerConnection) *)peerConnection
 didChangeIceConnectionState:(RTCIceConnectionState)newState {
-    RTCLog(@"ICE state changed: %ld", (long)newState);
+    RTCLog(@"ICE state changed: > %ld", (long)newState);
     dispatch_async(dispatch_get_main_queue(), ^{
         [self.delegate appClient:self didChangeConnectionState:newState];
     });
