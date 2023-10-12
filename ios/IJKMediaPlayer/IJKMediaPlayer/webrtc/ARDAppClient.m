@@ -825,6 +825,7 @@ NSDictionary *loadCache() {
     [_peerConnection close];
     _peerConnection = nil;
     self.state = kARDAppClientStateDisconnected;
+    RTCStopInternalCapture();
 #if defined(WEBRTC_IOS)
     if (kARDAppClientEnableTracing) {
         RTCStopInternalCapture();
@@ -1300,18 +1301,18 @@ didSetSessionDescriptionWithError:(NSError *)error {
     if (self.isBroadcast) {
         ARDExternalSampleCapturer *capturer =
         [[ARDExternalSampleCapturer alloc] initWithDelegate:source];
-        [_delegate appClient:self didCreateLocalExternalSampleCapturer:capturer];
+//        [_delegate appClient:self didCreateLocalExternalSampleCapturer:capturer];
     } else {
         RTC_OBJC_TYPE(RTCCameraVideoCapturer) *capturer =
         [[RTC_OBJC_TYPE(RTCCameraVideoCapturer) alloc] initWithDelegate:source];
-        [_delegate appClient:self didCreateLocalCapturer:capturer];
+//        [_delegate appClient:self didCreateLocalCapturer:capturer];
     }
 #else
 #if defined(__IPHONE_11_0) && (__IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_11_0)
     if (@available(iOS 10, *)) {
         RTC_OBJC_TYPE(RTCFileVideoCapturer) *fileCapturer =
         [[RTC_OBJC_TYPE(RTCFileVideoCapturer) alloc] initWithDelegate:source];
-        [_delegate appClient:self didCreateLocalFileCapturer:fileCapturer];
+//        [_delegate appClient:self didCreateLocalFileCapturer:fileCapturer];
     }
 #endif
 #endif
